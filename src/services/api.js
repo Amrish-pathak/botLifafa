@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://YOUR_BACKEND_URL",
+  baseURL: "https://tgautomactiontool-backend.onrender.com/",
 });
 
 export default api;
