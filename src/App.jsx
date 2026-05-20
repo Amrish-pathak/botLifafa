@@ -50,7 +50,7 @@ export default function App() {
       const ref = params.get("ref");
 
       const res = await api.post(
-        "/lifafa/validate",
+        "/botlifafa/validate",
         {
           lifafaId,
           ref,
@@ -115,7 +115,7 @@ export default function App() {
       const user = WebApp.initDataUnsafe.user;
 
       const res = await api.post(
-        "/lifafa/claim",
+        "/botlifafa/claim",
         {
           lifafaId: lifafa.id,
           telegramId: user.id,
