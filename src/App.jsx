@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import WebApp from "@twa-dev/sdk";
 
 import api from "./services/api";
@@ -15,224 +14,167 @@ import AlreadyClaimed from "./pages/AlreadyClaimed";
 export default function App() {
 
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState(null);
-
   const [screen, setScreen] = useState("");
-
   const [lifafa, setLifafa] = useState(null);
-
   const [claimAmount, setClaimAmount] = useState(0);
 
-const initApp = async () => {
+  const initApp = async () => {
 
-  try {
+    try {
 
-    WebApp.ready();
+      WebApp.ready();
 
-    const user = WebApp.initDataUnsafe.user;
+      const user = WebApp.initDataUnsafe?.user;
+      const startParam = WebApp.initDataUnsafe?.start_param; // ✅ FIXED
 
-    if (!user?.id) {
+      const ref = WebApp.initDataUnsafe?.start_param?.includes("ref_")
+        ? null
+        : null;
 
-      setError({
-        title: "Unable To Fetch",
-        message: "Please close and retry again",
-      });
+      if (!user?.id) {
+        setError({
+          title: "Unable To Fetch",
+          message: "Telegram user not found",
+        });
+        return;
+      }
 
-      return;
-    }
+      if (!startParam) {
+        setError({
+          title: "Invalid Request",
+          message: "Lifafa ID missing (start_param not found)",
+        });
+        return;
+      }
 
-    const params = new URLSearchParams(
-      window.location.search
-    );
+      const lifafaId = startParam;
 
-    const lifafaId = params.get("startapp");
-
-    const ref = params.get("ref");
-
-    if (!lifafaId) {
-
-      setError({
-        title: "Invalid Request",
-        message: "Lifafa ID is missing",
-      });
-
-      return;
-    }
-
-    const res = await api.post(
-      "/botlifafa/validate",
-      {
+      const res = await api.post("/botlifafa/validate", {
         lifafaId,
         ref,
         telegramUser: user,
+      });
+
+      const data = res.data;
+
+      if (!data?.success) {
+        setError({
+          title: "Invalid Lifafa",
+          message: data?.message || "Expired or invalid link",
+        });
+        return;
       }
-    );
 
-    const data = res.data;
+      if (!data?.lifafa) {
+        setError({
+          title: "Invalid Response",
+          message: "Lifafa data missing",
+        });
+        return;
+      }
 
-    if (!data || !data.success) {
+      setLifafa(data.lifafa);
 
-      setError({
-        title: "Invalid Lifafa",
-        message:
-          data?.message ||
-          "This Bot Lifafa is invalid or expired",
-      });
+      switch (data.status) {
+        case "new":
+          setScreen("task");
+          break;
 
-      return;
-    }
+        case "completed":
+          setScreen("claim");
+          break;
 
-    if (!data.lifafa) {
+        case "claimed":
+          setScreen("already");
+          break;
 
-      setError({
-        title: "Invalid Response",
-        message: "Lifafa data not found",
-      });
+        default:
+          setError({
+            title: "Unknown Status",
+            message: "Invalid lifafa status",
+          });
+      }
 
-      return;
-    }
-
-    setLifafa(data.lifafa);
-
-    if (data.status === "new") {
-
-      setScreen("task");
-
-    } else if (data.status === "completed") {
-
-      setScreen("claim");
-
-    } else if (data.status === "claimed") {
-
-      setScreen("already");
-
-    } else {
+    } catch (err) {
+      console.log(err);
 
       setError({
-        title: "Unknown Status",
-        message: "Invalid lifafa status",
+        title: "Server Error",
+        message: err?.response?.data?.message || "Something went wrong",
       });
 
+    } finally {
+      setLoading(false);
     }
-
-  } catch (err) {
-
-    console.log(err);
-
-    setError({
-      title: "Server Error",
-      message:
-        err.response?.data?.message ||
-        "Please retry again",
-    });
-
-  } finally {
-
-    // ALWAYS STOP LOADING
-    setLoading(false);
-
-  }
-};
+  };
 
   useEffect(() => {
     initApp();
   }, []);
 
   const openTask = () => {
-    window.open(
-      lifafa.referLink,
-      "_blank"
-    );
+    if (!lifafa?.referLink) return;
+    window.open(lifafa.referLink, "_blank");
   };
 
   const claimReward = async (number) => {
-
     try {
 
-      const user = WebApp.initDataUnsafe.user;
+      const user = WebApp.initDataUnsafe?.user;
 
-      const res = await api.post(
-        "/botlifafa/claim",
-        {
-          lifafaId: lifafa.id,
-          telegramId: user.id,
-          number,
-        }
-      );
+      const res = await api.post("/botlifafa/claim", {
+        lifafaId: lifafa.id,
+        telegramId: user.id,
+        number,
+      });
 
       setClaimAmount(res.data.amount);
-
       setScreen("success");
 
     } catch (err) {
-
       alert("Claim Failed");
     }
   };
 
   const openRefer = () => {
 
-    const user = WebApp.initDataUnsafe.user;
+    const user = WebApp.initDataUnsafe?.user;
 
-    const referLink =
-      `https://t.me/ClaimLifafaBot/app?startapp=${lifafa.id}&ref=${user.id}`;
+    const referLink = `https://t.me/ClaimLifafaBot/app?startapp=${lifafa.id}&ref=${user.id}`;
 
     WebApp.openTelegramLink(
       `https://t.me/share/url?url=${encodeURIComponent(referLink)}`
     );
   };
 
-  if (loading) {
-    return <SplashScreen />;
-  }
+  if (loading) return <SplashScreen />;
 
   if (error) {
     return (
       <ErrorScreen
         title={error.title}
         message={error.message}
-        onRetry={()=>{
-          window.location.reload();
-        }}
+        onRetry={() => window.location.reload()}
       />
     );
   }
 
-  if (screen === "task") {
-    return (
-      <TaskScreen
-        lifafa={lifafa}
-        onStart={openTask}
-      />
-    );
-  }
+  switch (screen) {
 
-  if (screen === "claim") {
-    return (
-      <ClaimScreen
-        lifafa={lifafa}
-        onClaim={claimReward}
-      />
-    );
-  }
+    case "task":
+      return <TaskScreen lifafa={lifafa} onStart={openTask} />;
 
-  if (screen === "success") {
-    return (
-      <SuccessScreen
-        amount={claimAmount}
-      />
-    );
-  }
+    case "claim":
+      return <ClaimScreen lifafa={lifafa} onClaim={claimReward} />;
 
-  if (screen === "already") {
-    return (
-      <AlreadyClaimed
-        lifafa={lifafa}
-        onRefer={openRefer}
-      />
-    );
-  }
+    case "success":
+      return <SuccessScreen amount={claimAmount} />;
 
-  return null;
+    case "already":
+      return <AlreadyClaimed lifafa={lifafa} onRefer={openRefer} />;
+
+    default:
+      return null;
+  }
 }
