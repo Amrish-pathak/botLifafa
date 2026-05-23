@@ -25,12 +25,11 @@ export default function App() {
 
       WebApp.ready();
 
-      const user = WebApp.initDataUnsafe?.user;
-      const startParam = WebApp.initDataUnsafe?.start_param; // ✅ FIXED
+      // const user = WebApp.initDataUnsafe?.user;
+      const user = {id: 1528011068};
+      // const startParam = WebApp.initDataUnsafe?.start_param; // ✅ FIXED
+      const startParam = "demo"; // ✅ FIXED
 
-      const ref = WebApp.initDataUnsafe?.start_param?.includes("ref_")
-        ? null
-        : null;
 
       if (!user?.id) {
         setError({
@@ -40,15 +39,31 @@ export default function App() {
         return;
       }
 
+
       if (!startParam) {
         setError({
           title: "Invalid Request",
-          message: "Lifafa ID missing (start_param not found)",
+          message: "Lifafa ID missing",
         });
         return;
       }
 
-      const lifafaId = startParam;
+
+
+      // let lifafaId = startParam;
+      let lifafaId = startParam;
+
+      let ref = null;
+
+      if (startParam.includes("_ref")) {
+        const parts = startParam.split("_ref");
+
+        lifafaId = parts[0];
+        ref = parts[1] || null;
+      }
+
+
+
 
       const res = await api.post("/botlifafa/validate", {
         lifafaId,
@@ -141,7 +156,7 @@ export default function App() {
 
     const user = WebApp.initDataUnsafe?.user;
 
-    const referLink = `https://t.me/ClaimLifafaBot/app?startapp=${lifafa.id}&ref=${user.id}`;
+    const referLink = `https://t.me/ClaimLifafaBot/taskwala?startapp=${lifafa.id}_ref${user.id}`;
 
     WebApp.openTelegramLink(
       `https://t.me/share/url?url=${encodeURIComponent(referLink)}`
