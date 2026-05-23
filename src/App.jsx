@@ -25,10 +25,10 @@ export default function App() {
 
       WebApp.ready();
 
-      // const user = WebApp.initDataUnsafe?.user;
-      const user = {id: 1528011068};
-      // const startParam = WebApp.initDataUnsafe?.start_param; // ✅ FIXED
-      const startParam = "demo"; // ✅ FIXED
+      const user = WebApp.initDataUnsafe?.user;
+      // const user = {id: 1528011068};
+      const startParam = WebApp.initDataUnsafe?.start_param; // ✅ FIXED
+      // const startParam = "demo"; // ✅ FIXED
 
 
       if (!user?.id) {
