@@ -18,6 +18,8 @@ export default function TaskScreen({ lifafa, onStart }) {
 
   const title = lifafa?.title || "Premium Classic Task";
   const claimAmount = lifafa?.claimAmount ?? "0";
+  const refConditionName = lifafa?.refConditionName ?? "0";
+
 
   return (
     <div
@@ -123,9 +125,8 @@ export default function TaskScreen({ lifafa, onStart }) {
 
             {/* Arrow */}
             <div
-              className={`w-10 h-10 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-xl transition-all duration-300 ${
-                showSteps ? "rotate-180" : ""
-              }`}
+              className={`w-10 h-10 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-xl transition-all duration-300 ${showSteps ? "rotate-180" : ""
+                }`}
             >
               ⌄
             </div>
@@ -134,11 +135,10 @@ export default function TaskScreen({ lifafa, onStart }) {
 
           {/* CONTENT */}
           <div
-            className={`transition-all duration-500 ease-in-out overflow-hidden ${
-              showSteps
+            className={`transition-all duration-500 ease-in-out overflow-hidden ${showSteps
                 ? "max-h-[500px] opacity-100 p-4 pt-0"
                 : "max-h-0 opacity-0"
-            }`}
+              }`}
           >
 
             <div className="space-y-3">
@@ -249,7 +249,13 @@ export default function TaskScreen({ lifafa, onStart }) {
 
           </p>
 
+          {refConditionName !== "Direct Join" && (
+            <p className="text-white font-semibold">
+              Refer by - {refConditionName}
+            </p>
+          )}
         </div>
+
 
       </div>
     </div>
