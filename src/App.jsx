@@ -12,6 +12,7 @@ import ClaimScreen from "./pages/ClaimScreen";
 import SuccessScreen from "./pages/SuccessScreen";
 import AlreadyClaimed from "./pages/AlreadyClaimed";
 import ReferAndEarnScreen from "./pages/ReferAndEarnScreen";
+import ReportScreen from "./pages/ReportScreen";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -20,7 +21,7 @@ export default function App() {
   const [lifafa, setLifafa] = useState(null);
   const [claimAmount, setClaimAmount] = useState(0);
   const [referScreen, setReferScreen] = useState(false);
-  
+
   // ── Refer success modal state ──────────────────────────────
   const [referSuccess, setReferSuccess] = useState(null);
 
@@ -31,10 +32,10 @@ export default function App() {
     try {
       WebApp.ready();
 
-       const user = WebApp.initDataUnsafe?.user ;
-       const startParam = WebApp.initDataUnsafe?.start_param;
+      const user = WebApp.initDataUnsafe?.user;
+      const startParam = WebApp.initDataUnsafe?.start_param;
       //  const user = WebApp.initDataUnsafe?.user || { id: 5989056489 };
-      // const startParam = WebApp.initDataUnsafe?.start_param || "380UUNurKdo6MtqZwDpC";
+      // const startParam = WebApp.initDataUnsafe?.start_param || "2Vt2UGbno50EMqKqB7x7";
 
       setCurrentUser(user);
 
@@ -51,6 +52,27 @@ export default function App() {
           title: "Invalid Request",
           message: "Lifafa ID missing",
         });
+        return;
+      }
+
+      if (
+        startParam.startsWith("report_")
+      ) {
+
+        const lifafaId =
+          startParam.replace(
+            "report_",
+            ""
+          );
+
+        setScreen("report");
+
+        setLifafa({
+          id: lifafaId,
+        });
+
+        setLoading(false);
+
         return;
       }
 
@@ -144,7 +166,7 @@ export default function App() {
         return;
       }
 
-  
+
 
       const res = await api.post("/botlifafa/claim", {
         lifafaId: lifafa.id,
@@ -196,7 +218,7 @@ export default function App() {
           userAmount: res.data.userAmount,
           totalClaimAmount: res.data.totalClaimAmount,
         });
-        
+
         // Close refer screen
         setReferScreen(false);
       }
@@ -277,6 +299,12 @@ export default function App() {
             <AlreadyClaimed
               lifafa={lifafa}
               onReferClick={() => setReferScreen(true)}
+            />
+          )}
+
+          {screen === "report" && (
+            <ReportScreen
+              lifafaId={lifafa.id}
             />
           )}
         </>

@@ -21,6 +21,84 @@ export default function TaskScreen({ lifafa, onStart }) {
   const refConditionName = lifafa?.refConditionName ?? "0";
 
 
+  const INR = (n) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(n) || 0);
+
+const NUM = (n) => new Intl.NumberFormat("en-IN").format(Number(n) || 0);
+
+
+  const ProgressCard = ({ lifafa }) => {
+  const { claimedUsers = 0, totalUsers = 0, remainingBudget = 0, totalBudget = 0 ,amountPerUser=0} = lifafa;
+  const progress = totalBudget/amountPerUser
+  const claimedPct  = claimedUsers > 0 ? Math.min(100, (claimedUsers / progress) * 100)  : 0;
+  const spentAmt    = Number(totalBudget) - Number(remainingBudget);
+  const spentPct    = totalBudget > 0 ? Math.min(100, (spentAmt / totalBudget) * 100) : 0;
+
+  return (
+    <div className="bg-gradient-to-br from-[#1a1f2f] to-[#111827] border border-zinc-800 rounded-2xl p-4 space-y-4">
+
+      {/* remaining budget — big display */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-xs tracking-widest text-xs text-amber-300/70 mb-1">
+            Remaining Budget
+          </p>
+
+          <p className="text-3xl font-black text-white leading-none">
+            {INR(remainingBudget)}
+          </p>
+          <p className="text-[10px] text-zinc-500 mt-1">
+            of {INR(totalBudget)} total
+          </p>
+        </div>
+
+        {/* donut-style ring (CSS only) */}
+        <div className="relative flex-shrink-0 w-14 h-14">
+          <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#27272a" strokeWidth="3" />
+            <circle
+              cx="18" cy="18" r="15.5" fill="none"
+              stroke="#10b981" strokeWidth="3"
+              strokeDasharray={`${spentPct * 0.974} 97.4`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-emerald-400">
+            {Math.round(spentPct)}%
+          </span>
+        </div>
+      </div>
+
+
+      {/* divider */}
+      <div className="border-t border-zinc-800" />
+
+      {/* claimed users progress */}
+      <div className="space-y-1.5">
+        <div className="flex justify-between text-[10px] font-semibold text-zinc-500">
+          <span>Users claimed</span>
+          <span className="text-zinc-300">{NUM(claimedUsers)} / {NUM(progress-claimedUsers)}</span>
+        </div>
+        <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-700"
+            style={{ width: `${claimedPct}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-[9px] text-zinc-600">
+          <span>{claimedPct.toFixed(1)}% claimed</span>
+          <span>{NUM(progress-claimedUsers)} pending</span>
+        </div>
+      </div>
+
+    </div>
+  );
+};
+
   return (
     <div
       className="
@@ -93,6 +171,12 @@ export default function TaskScreen({ lifafa, onStart }) {
           </div>
 
         </div>
+
+
+{/* ── Progress + Remaining Card ── */}
+        <ProgressCard lifafa={lifafa} />
+
+
 
         {/* COLLAPSIBLE STEPS */}
         <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[28px] overflow-hidden transition-all duration-300">
