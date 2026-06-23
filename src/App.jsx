@@ -151,7 +151,7 @@ export default function App() {
 
   const openTask = () => {
     if (!lifafa?.referLink) return;
-    const link = lifafa.referLink.replace("{user}", currentUser.id);
+    const link = lifafa.referLink.replace("%7Buser%7D", currentUser.id);
     window.open(link, "_blank");
   };
 
