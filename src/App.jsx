@@ -132,8 +132,16 @@ export default function App() {
     String(currentUser.id)
   );
 
+  // ── t.me links (channel/bot join) ke liye openTelegramLink hi sahi
+  // method hai — openLink sirf non-Telegram external URLs ke liye ────────
+  const isTelegramLink = /^(https?:\/\/)?(www\.)?t\.me\//i.test(link);
+
   try {
-    WebApp.openLink(link);
+    if (isTelegramLink) {
+      WebApp.openTelegramLink(link);
+    } else {
+      WebApp.openLink(link);
+    }
   } catch (err) {
     console.error("openTask error:", err);
 
