@@ -146,15 +146,24 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
     setError("");
 
     try {
-      await onAddMobile(mobile);
-      haptic("success");
-      setSuccess(true);
-     onOpenTask()// ── task link turant open — WebApp.openLink, popup-blocker-proof
-    } catch (err) {
-      haptic("error");
-      setError(err?.response?.data?.message || "Something went wrong, please try again");
-    } finally {
-      setSubmitting(false);
+  await onAddMobile(mobile);
+
+  haptic("success");
+
+  // Small delay gives React time to finish state update smoothly
+  requestAnimationFrame(() => {
+    onOpenTask();
+  });
+
+} catch (err) {
+  haptic("error");
+
+  setError(
+    err?.response?.data?.message ||
+    "Something went wrong, please try again"
+  );
+} finally {
+  setSubmitting(false);
     }
   };
 
@@ -243,7 +252,7 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
                Complete Provided Task & automatically Recieved Money in Your TaskWala Wallet.
             </p>
             <button
-              onClick={onStart}
+              onClick={onOpenTask}
               className="w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-base shadow-[0_10px_30px_rgba(255,170,0,0.3)] active:scale-[0.98] transition-all"
             >
               Let's Complete 
