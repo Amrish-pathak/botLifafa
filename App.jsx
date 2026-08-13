@@ -115,8 +115,8 @@ export default function App() {
   const addMobile = async (number) => {
     const res = await api.post("/botlifafa/add-mobile", {
       lifafaId: lifafa.id,
-      number,
-      initData: WebApp.initData,
+        telegramId: user.id,
+        number,
     });
     return res.data;
   };
