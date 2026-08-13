@@ -124,11 +124,44 @@ export default function App() {
   }, []);
 
   
-  const openTask = () => {
-    if (!lifafa?.referLink) return;
-    const link = lifafa.referLink.replace("%7Buser%7D", currentUser.id);
-    window.open(link, "_blank");
-  };
+  const openTask = useCallback(() => {
+  if (!lifafa?.referLink || !currentUser?.id) return;
+
+  const link = lifafa.referLink.replace(
+    "%7Buser%7D",
+    encodeURIComponent(currentUser.id)
+  );
+
+  try {
+    // Telegram Mini App → preferred method
+    if (WebApp?.openLink) {
+      WebApp.openLink(link, {
+        try_instant_view: false,
+      });
+      return;
+    }
+  } catch (err) {
+    console.warn("Telegram openLink failed:", err);
+  }
+
+  // Fallback 1: Telegram WebApp openTelegramLink (if applicable)
+  try {
+    if (WebApp?.openTelegramLink && link.startsWith("https://t.me/")) {
+      WebApp.openTelegramLink(link);
+      return;
+    }
+  } catch (err) {
+    console.warn("Telegram link fallback failed:", err);
+  }
+
+  // Fallback 2: Browser
+  try {
+    window.open(link, "_blank", "noopener,noreferrer");
+  } catch {
+    // Fallback 3: same-tab navigation
+    window.location.href = link;
+  }
+}, [lifafa?.referLink, currentUser?.id]);
 
 
   // ── NAYA — sirf yeh function add hua hai, baaki file untouched ─────────
