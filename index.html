@@ -1,24 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-
     <meta charset="UTF-8" />
 
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+
+    <meta
+      name="theme-color"
+      content="#070707"
     />
 
     <title>Bot Lifafa</title>
 
+    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+    <!-- INSTANT STARTUP SPLASH -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100%;
+        background: #070707;
+        color: #ffffff;
+      }
+
+      body {
+        overflow: hidden;
+        font-family:
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+
+      #startup-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #070707;
+        overflow: hidden;
+      }
+
+      .startup-content {
+        width: 100%;
+        max-width: 360px;
+        padding: 24px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+
+      .startup-logo {
+        position: relative;
+        width: 112px;
+        height: 112px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .startup-ring {
+        position: absolute;
+        inset: 0;
+        border: 3px solid rgba(59, 130, 246, 0.18);
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: startup-spin 0.9s linear infinite;
+      }
+
+      .startup-inner {
+        width: 78px;
+        height: 78px;
+        border-radius: 24px;
+        background: #111111;
+        border: 1px solid #252525;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+      }
+
+      .startup-emoji {
+        font-size: 38px;
+        line-height: 1;
+      }
+
+      .startup-title {
+        margin-top: 26px;
+        font-size: 25px;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -0.4px;
+      }
+
+      .startup-subtitle {
+        margin-top: 8px;
+        color: #888888;
+        font-size: 13px;
+      }
+
+      .startup-loading {
+        width: 150px;
+        height: 3px;
+        margin: 30px auto 0;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #1c1c1c;
+      }
+
+      .startup-loading-bar {
+        width: 50%;
+        height: 100%;
+        border-radius: 999px;
+        background: #3b82f6;
+        animation: startup-loading 1s ease-in-out infinite;
+      }
+
+      .startup-status {
+        margin-top: 13px;
+        color: #555555;
+        font-size: 11px;
+      }
+
+      @keyframes startup-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes startup-loading {
+        0% {
+          transform: translateX(-120%);
+        }
+
+        50% {
+          transform: translateX(100%);
+        }
+
+        100% {
+          transform: translateX(230%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .startup-ring,
+        .startup-loading-bar {
+          animation: none;
+        }
+      }
+    </style>
   </head>
 
   <body>
 
+    <!--
+      This appears BEFORE React loads.
+      Do not put React/Telegram user data logic here.
+    -->
+    <div id="startup-splash">
+      <div class="startup-content">
+
+        <div class="startup-logo">
+          <div class="startup-ring"></div>
+
+          <div class="startup-inner">
+            <span class="startup-emoji">💸</span>
+          </div>
+        </div>
+
+        <div class="startup-title">
+          TaskWala
+        </div>
+
+        <div class="startup-subtitle">
+          TaskWala Solutions India
+        </div>
+
+        <div class="startup-loading">
+          <div class="startup-loading-bar"></div>
+        </div>
+
+        <div class="startup-status">
+          Starting TaskWala...
+        </div>
+
+      </div>
+    </div>
+
+    <!-- React mounts here -->
     <div id="root"></div>
 
+    <!-- React entry -->
     <script type="module" src="/src/main.jsx"></script>
 
   </body>
