@@ -240,13 +240,13 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
             </div>
             <h3 className="text-lg font-bold text-white">Task Started!</h3>
             <p className="text-xs text-gray-400 mt-1.5 mb-5">
-              Task tab open ho gaya. Complete karke wapas Telegram pe aa jao.
+               Complete Provided Task & automatically Recieved Money in Your TaskWala Wallet.
             </p>
             <button
-              onClick={onOpenTask}
+              onClick={onStart}
               className="w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-base shadow-[0_10px_30px_rgba(255,170,0,0.3)] active:scale-[0.98] transition-all"
             >
-              Open Task Link Again
+              Let's Complete 
             </button>
             <button onClick={onClose} className="w-full h-11 mt-2 rounded-2xl text-gray-400 text-sm font-medium active:scale-95 transition-all">
               Close
