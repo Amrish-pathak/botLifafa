@@ -128,7 +128,7 @@ export default function App() {
     if (!lifafa?.referLink) return;
     const link = lifafa.referLink.replace("%7Buser%7D", currentUser.id);
   try {
-    WebApp.openLink(lifafa.referLink);
+    window.open(lifafa.referLink, "_blank"); // fallback
   } catch {
     window.open(lifafa.referLink, "_blank"); // fallback
   }
