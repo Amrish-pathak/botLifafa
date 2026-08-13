@@ -149,7 +149,7 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
       await onAddMobile(mobile);
       haptic("success");
       setSuccess(true);
-      onStart(); // ── task link turant open — WebApp.openLink, popup-blocker-proof
+     // ── task link turant open — WebApp.openLink, popup-blocker-proof
     } catch (err) {
       haptic("error");
       setError(err?.response?.data?.message || "Something went wrong, please try again");
