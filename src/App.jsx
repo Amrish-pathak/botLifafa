@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
+
 import WebApp from "@twa-dev/sdk";
 
 import api from "./services/api";
 
 import SplashScreen from "./components/SplashScreen";
 import ErrorScreen from "./components/ErrorScreen";
-import ReferSuccessModal from "./components/ReferSuccessModal";
 
 import TaskScreen from "./pages/TaskScreen";
 import ClaimScreen from "./pages/ClaimScreen";
 import SuccessScreen from "./pages/SuccessScreen";
 import AlreadyClaimed from "./pages/AlreadyClaimed";
-import ReferAndEarnScreen from "./pages/ReferAndEarnScreen";
-import ReportScreen from "./pages/ReportScreen";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -20,75 +18,44 @@ export default function App() {
   const [screen, setScreen] = useState("");
   const [lifafa, setLifafa] = useState(null);
   const [claimAmount, setClaimAmount] = useState(0);
-  const [referScreen, setReferScreen] = useState(false);
 
-  // ── Refer success modal state ──────────────────────────────
-  const [referSuccess, setReferSuccess] = useState(null);
-
-  // ── Store user in state ────────────────────────────────────
+  // ── User ek baar cache kar lete hai — baar-baar WebApp.initDataUnsafe.user
+  // call karne ki zaroorat nahi, aur agar kabhi undefined ho to sab jagah
+  // consistent rahega ────────────────────────────────────────────────────
   const [currentUser, setCurrentUser] = useState(null);
 
   const initApp = async () => {
     try {
       WebApp.ready();
+      WebApp.expand();
 
       const user = WebApp.initDataUnsafe?.user;
-      const startParam = WebApp.initDataUnsafe?.start_param;
-      //  const user = WebApp.initDataUnsafe?.user || { id: 5989056489 };
-      // const startParam = WebApp.initDataUnsafe?.start_param || "2Vt2UGbno50EMqKqB7x7";
-
       setCurrentUser(user);
 
       if (!user?.id) {
         setError({
           title: "Unable To Fetch",
-          message: "Telegram user not found",
+          message: "Please close and retry again",
         });
         return;
       }
 
-      if (!startParam) {
+      const params = new URLSearchParams(window.location.search);
+      const lifafaId = params.get("startapp");
+      const ref = params.get("ref");
+
+      if (!lifafaId) {
         setError({
           title: "Invalid Request",
-          message: "Lifafa ID missing",
+          message: "Lifafa ID is missing",
         });
         return;
       }
 
-      if (
-        startParam.startsWith("report_")
-      ) {
-
-        const lifafaId =
-          startParam.replace(
-            "report_",
-            ""
-          );
-
-        setScreen("report");
-
-        setLifafa({
-          id: lifafaId,
-        });
-
-        setLoading(false);
-
-        return;
-      }
-
-      // ── Parse referral link format ─────────────────────────
-      // Format: lifafaId_ref{userId}
-      let lifafaId = startParam;
-      let ref = null;
-
-      if (startParam.includes("_ref")) {
-        const parts = startParam.split("_ref");
-        lifafaId = parts[0];           // 22OeN1HlOVFYp3fx8Daw
-        ref = parts[1] || null;        // 1528011068
-      }
-
-      console.log("Parsed:", { lifafaId, ref, originalParam: startParam });
-
+      // ── validate ke liye telegramUser bhejna theek hai — yeh sirf
+      // display/lookup purpose ke liye hai, koi balance/payment yahan
+      // move nahi hota. Money-moving actions (claim, add-mobile) ke
+      // liye neeche initData (verified) use ho raha hai ────────────────
       const res = await api.post("/botlifafa/validate", {
         lifafaId,
         ref,
@@ -97,48 +64,41 @@ export default function App() {
 
       const data = res.data;
 
-      if (!data?.success) {
+      if (!data || !data.success) {
         setError({
           title: "Invalid Lifafa",
-          message: data?.message || "Expired or invalid link",
+          message: data?.message || "This Bot Lifafa is invalid or expired",
         });
         return;
       }
 
-      if (!data?.lifafa) {
+      if (!data.lifafa) {
         setError({
           title: "Invalid Response",
-          message: "Lifafa data missing",
+          message: "Lifafa data not found",
         });
         return;
       }
 
       setLifafa(data.lifafa);
 
-      switch (data.status) {
-        case "new":
-          setScreen("task");
-          break;
-
-        case "completed":
-          setScreen("claim");
-          break;
-
-        case "claimed":
-          setScreen("already");
-          break;
-
-        default:
-          setError({
-            title: "Unknown Status",
-            message: "Invalid lifafa status",
-          });
+      if (data.status === "new") {
+        setScreen("task");
+      } else if (data.status === "completed") {
+        setScreen("claim");
+      } else if (data.status === "claimed") {
+        setScreen("already");
+      } else {
+        setError({
+          title: "Unknown Status",
+          message: "Invalid lifafa status",
+        });
       }
     } catch (err) {
-      console.error("Init error:", err);
+      console.log(err);
       setError({
         title: "Server Error",
-        message: err?.response?.data?.message || "Something went wrong",
+        message: err.response?.data?.message || "Please retry again",
       });
     } finally {
       setLoading(false);
@@ -151,88 +111,62 @@ export default function App() {
 
   const openTask = () => {
     if (!lifafa?.referLink) return;
-    const link = lifafa.referLink.replace("%7Buser%7D", currentUser.id);
-    window.open(link, "_blank");
+    try {
+      WebApp.openLink(lifafa.referLink);
+    } catch {
+      window.open(lifafa.referLink, "_blank");
+    }
   };
 
+  // ── FIX: initData (verified, spoof-proof) bhejo — telegramId nahi.
+  // Backend ka verifyTelegramInitData middleware isko decode/verify
+  // karke req.telegramUser set karta hai, jo hi addMobileNumber
+  // controller actually use karta hai ─────────────────────────────────
+  const addMobile = async (number) => {
+    if (!currentUser?.id) {
+      throw new Error("User not found");
+    }
+    if (!number || String(number).trim() === "") {
+      throw new Error("Please enter your TaskWala number");
+    }
+
+    const res = await api.post("/botlifafa/add-mobile", {
+      lifafaId: lifafa.id,
+      initData: WebApp.initData,
+      number: String(number).trim(),
+    });
+    return res.data;
+  };
+
+  // ── FIX: yahi same problem — telegramId ki jagah initData ──────────────
   const claimReward = async (number) => {
     try {
       if (!currentUser?.id) {
         alert("User not found");
         return;
       }
-
-      if (!number || number.trim() === "") {
+      if (!number || String(number).trim() === "") {
         alert("Please enter your TaskWala number");
         return;
       }
 
-
-
       const res = await api.post("/botlifafa/claim", {
         lifafaId: lifafa.id,
         initData: WebApp.initData,
-        number: number.trim(),
+        number: String(number).trim(),
       });
 
-      console.log("Claim response:", res.data);
-
-      setClaimAmount(res.data.amount || lifafa.claimAmount);
+      setClaimAmount(res.data.amount ?? lifafa.claimAmount);
       setScreen("success");
     } catch (err) {
-      console.error("Claim error:", err);
       alert(err?.response?.data?.message || "Claim Failed");
-    }
-  };
-
-  const getReferLink = async (amount) => {
-    try {
-      if (!currentUser?.id) {
-        alert("User not found");
-        return;
-      }
-
-      if (!amount || Number(amount) <= 0) {
-        alert("Please enter a valid referral amount");
-        return;
-      }
-
-      console.log("Creating refer link:", {
-        lifafaId: lifafa.id,
-        telegramId: currentUser.id,
-        referAmount: Number(amount),
-      });
-
-      const res = await api.post("/botlifafa/refer", {
-        lifafaId: lifafa.id,
-        telegramId: currentUser.id,
-        referAmount: Number(amount),
-      });
-
-      console.log("Refer response:", res.data);
-
-      // ── Show success modal with response data ─────────────
-      if (res.data.success) {
-        setReferSuccess({
-          referLink: res.data.referLink,
-          referAmount: res.data.referAmount,
-          userAmount: res.data.userAmount,
-          totalClaimAmount: res.data.totalClaimAmount,
-        });
-
-        // Close refer screen
-        setReferScreen(false);
-      }
-    } catch (err) {
-      console.error("Refer error:", err);
-      alert(err?.response?.data?.message || "Unable to generate referral link");
     }
   };
 
   const openRefer = () => {
     if (!currentUser?.id) return;
 
-    const referLink = `https://t.me/ClaimLifafaBot/taskwala?startapp=${lifafa.id}_ref${currentUser.id}`;
+    const referLink = `https://t.me/ClaimLifafaBot/app?startapp=${lifafa.id}&ref=${currentUser.id}`;
 
     WebApp.openTelegramLink(
       `https://t.me/share/url?url=${encodeURIComponent(referLink)}`
@@ -251,65 +185,21 @@ export default function App() {
     );
   }
 
-  return (
-    <>
-      {/* ── Refer Success Modal ────────────────────────────── */}
-      {referSuccess && (
-        <ReferSuccessModal
-          referLink={referSuccess.referLink}
-          referAmount={referSuccess.referAmount}
-          userAmount={referSuccess.userAmount}
-          onClose={() => setReferSuccess(null)}
-          onShare={() => {
-            if (navigator.share) {
-              navigator.share({
-                title: "Join TaskWala & Earn",
-                text: `Complete tasks and earn ₹${referSuccess.userAmount}!`,
-                url: referSuccess.referLink,
-              });
-            }
-          }}
-        />
-      )}
+  if (screen === "task") {
+    return <TaskScreen lifafa={lifafa} onStart={openTask} onAddMobile={addMobile} />;
+  }
 
-      {/* ── Main Screens ───────────────────────────────────── */}
-      {referScreen ? (
-        <ReferAndEarnScreen
-          taskAmount={lifafa.claimAmount}
-          onBack={() => setReferScreen(false)}
-          onReferLink={getReferLink}
-        />
-      ) : (
-        <>
-          {screen === "task" && (
-            <TaskScreen lifafa={lifafa} onStart={openTask} />
-          )}
+  if (screen === "claim") {
+    return <ClaimScreen lifafa={lifafa} onClaim={claimReward} />;
+  }
 
-          {screen === "claim" && (
-            <ClaimScreen lifafa={lifafa} onClaim={claimReward} />
-          )}
+  if (screen === "success") {
+    return <SuccessScreen amount={claimAmount} />;
+  }
 
-          {screen === "success" && (
-            <SuccessScreen
-              amount={claimAmount}
-              onReferClick={() => setReferScreen(true)}
-            />
-          )}
+  if (screen === "already") {
+    return <AlreadyClaimed lifafa={lifafa} onRefer={openRefer} />;
+  }
 
-          {screen === "already" && (
-            <AlreadyClaimed
-              lifafa={lifafa}
-              onReferClick={() => setReferScreen(true)}
-            />
-          )}
-
-          {screen === "report" && (
-            <ReportScreen
-              lifafaId={lifafa.id}
-            />
-          )}
-        </>
-      )}
-    </>
-  );
+  return null;
 }
