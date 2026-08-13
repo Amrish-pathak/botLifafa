@@ -113,6 +113,7 @@ export default function App() {
   // ── Naya: wallet number add-mobile endpoint pe bhejo, initData ke saath
   // (backend middleware isko verify karega)
   const addMobile = async (number) => {
+    const user = WebApp.initDataUnsafe.user;
     const res = await api.post("/botlifafa/add-mobile", {
       lifafaId: lifafa.id,
         telegramId: user.id,
