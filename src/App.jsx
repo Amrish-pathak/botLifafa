@@ -123,11 +123,16 @@ export default function App() {
     initApp();
   }, []);
 
+  
   const openTask = () => {
     if (!lifafa?.referLink) return;
     const link = lifafa.referLink.replace("%7Buser%7D", currentUser.id);
-    window.open(link, "_blank");
-  };
+  try {
+    WebApp.openLink(lifafa.referLink);
+  } catch {
+    window.open(lifafa.referLink, "_blank"); // fallback
+  }
+};
 
   // ── NAYA — sirf yeh function add hua hai, baaki file untouched ─────────
   const addMobile = async (number) => {
