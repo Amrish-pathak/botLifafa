@@ -125,11 +125,33 @@ export default function App() {
 
   
   const openTask = () => {
-  alert(
-    "openTask CALLED\n" +
-    "referLink: " + (lifafa?.referLink || "❌ MISSING") + "\n" +
-    "currentUser.id: " + (currentUser?.id || "❌ MISSING")
+  if (!lifafa?.referLink || !currentUser?.id) return;
+
+  const link = lifafa.referLink.replace(
+    "%7Buser%7D",
+    String(currentUser.id)
   );
+
+  // ── Telegram ke sabhi internal domains — t.me, telegram.me, aur
+  // telegram.dog (ISP-block bypass ke liye use hota hai) — sabke liye
+  // openTelegramLink hi sahi hai, openLink sirf true-external URLs ke liye
+  const isTelegramLink = /^(https?:\/\/)?(www\.)?(t\.me|telegram\.me|telegram\.dog)\//i.test(link);
+
+  try {
+    if (isTelegramLink) {
+      WebApp.openTelegramLink(link);
+    } else {
+      WebApp.openLink(link);
+    }
+  } catch (err) {
+    console.error("openTask error:", err);
+
+    try {
+      window.open(link, "_blank", "noopener,noreferrer");
+    } catch {
+      window.location.href = link;
+    }
+  }
 };
 
 
