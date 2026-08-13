@@ -125,32 +125,11 @@ export default function App() {
 
   
   const openTask = () => {
-  if (!lifafa?.referLink || !currentUser?.id) return;
-
-  const link = lifafa.referLink.replace(
-    "%7Buser%7D",
-    String(currentUser.id)
+  alert(
+    "openTask CALLED\n" +
+    "referLink: " + (lifafa?.referLink || "❌ MISSING") + "\n" +
+    "currentUser.id: " + (currentUser?.id || "❌ MISSING")
   );
-
-  // ── t.me links (channel/bot join) ke liye openTelegramLink hi sahi
-  // method hai — openLink sirf non-Telegram external URLs ke liye ────────
-  const isTelegramLink = /^(https?:\/\/)?(www\.)?t\.me\//i.test(link);
-
-  try {
-    if (isTelegramLink) {
-      WebApp.openTelegramLink(link);
-    } else {
-      WebApp.openLink(link);
-    }
-  } catch (err) {
-    console.error("openTask error:", err);
-
-    try {
-      window.open(link, "_blank", "noopener,noreferrer");
-    } catch {
-      window.location.href = link;
-    }
-  }
 };
 
 
