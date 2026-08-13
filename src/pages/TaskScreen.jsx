@@ -151,10 +151,7 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
   haptic("success");
 
   // Small delay gives React time to finish state update smoothly
-  requestAnimationFrame(() => {
-    onOpenTask();
-  });
-
+  
 } catch (err) {
   haptic("error");
 
