@@ -106,6 +106,7 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(3);
 
   // ── Sheet dobara open ho to purana state clear ─────────────────────────
   useEffect(() => {
@@ -114,8 +115,29 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
       setError("");
       setSubmitting(false);
       setSuccess(false);
+      setCountdown(3);
     }
   }, [open]);
+
+  // ── Success hote hi 3-second auto-redirect countdown ────────────────────
+  useEffect(() => {
+    if (!success) return;
+
+    setCountdown(3);
+    const tick = setInterval(() => {
+      setCountdown((c) => (c > 1 ? c - 1 : 0));
+    }, 1000);
+
+    const redirect = setTimeout(() => {
+      onOpenTask();
+    }, 3000);
+
+    return () => {
+      clearInterval(tick);
+      clearTimeout(redirect);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [success]);
 
   const haptic = (type) => {
     try {
@@ -146,21 +168,18 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
     setError("");
 
     try {
-  await onAddMobile(mobile);
+      await onAddMobile(mobile);
 
-  haptic("success");
-
-  // Small delay gives React time to finish state update smoothly
-  
-} catch (err) {
-  haptic("error");
-
-  setError(
-    err?.response?.data?.message ||
-    "Something went wrong, please try again"
-  );
-} finally {
-  setSubmitting(false);
+      haptic("success");
+      setSuccess(true); // ── useEffect [success] khud 3s baad onOpenTask() call karega
+    } catch (err) {
+      haptic("error");
+      setError(
+        err?.response?.data?.message ||
+        "Something went wrong, please try again"
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -245,14 +264,17 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
               ✅
             </div>
             <h3 className="text-lg font-bold text-white">Task Started!</h3>
-            <p className="text-xs text-gray-400 mt-1.5 mb-5">
-               Complete Provided Task & automatically Recieved Money in Your TaskWala Wallet.
+            <p className="text-xs text-gray-400 mt-1.5 mb-1">
+              Complete Provided Task &amp; automatically Recieved Money in Your TaskWala Wallet.
+            </p>
+            <p className="text-[11px] text-amber-300/80 mb-5">
+              Redirecting in {countdown}s…
             </p>
             <button
               onClick={onOpenTask}
               className="w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-base shadow-[0_10px_30px_rgba(255,170,0,0.3)] active:scale-[0.98] transition-all"
             >
-              Let's Complete 
+              Let's Complete &amp; Earn
             </button>
             <button onClick={onClose} className="w-full h-11 mt-2 rounded-2xl text-gray-400 text-sm font-medium active:scale-95 transition-all">
               Close
@@ -263,7 +285,6 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
     </div>
   );
 }
-
 export default function TaskScreen({ lifafa, onStart, onAddMobile }) {
   const [showSteps, setShowSteps] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
