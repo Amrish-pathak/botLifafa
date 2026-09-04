@@ -383,7 +383,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
     if (!supportUsername) return;
 
     const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "";
-    const message = `I want help on bot Lifafa.\nMy Telegram ID: ${tgId}`;
+    const message = `I want help on bot Lifafa - ${title}.\nMy Telegram ID: ${tgId}`;
     const url = `https://t.me/${supportUsername}?text=${encodeURIComponent(message)}`;
 
     if (window.Telegram?.WebApp?.openTelegramLink) {
@@ -421,7 +421,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
           aria-label="Support"
           className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-blue-700 border border-white/10 shadow-[0_6px_20px_rgba(0,0,0,0.4)] flex items-center justify-center text-xl active:scale-90 transition-transform"
         >
-          🎧
+          ☎️
         </button>
         <button
           onClick={onOpenRefer}
