@@ -279,17 +279,19 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
           taskAmount={lifafa.claimAmount}
           onBack={() => setReferScreen(false)}
           onReferLink={getReferLink}
+          existingMobile={lifafa?.mobile || ""}   // ✅ FIX
+          onAddMobile={addMobile}                  // ✅ FIX
         />
       ) : (
         <>
-{screen === "task" && (
-  <TaskScreen
-    lifafa={lifafa}
-    onStart={openTask}
-    onAddMobile={addMobile}
-    onOpenRefer={() => setReferScreen(true)}
-  />
-)}
+          {screen === "task" && (
+            <TaskScreen
+              lifafa={lifafa}
+              onStart={openTask}
+              onAddMobile={addMobile}
+              onOpenRefer={() => setReferScreen(true)}   // ✅ FIX
+            />
+          )}
 
           {screen === "claim" && (
             <ClaimScreen lifafa={lifafa} onClaim={claimReward} />
@@ -308,17 +310,6 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
               onReferClick={() => setReferScreen(true)}
             />
           )}
-
-          // 3) ReferAndEarnScreen ko existingMobile + onAddMobile do
-{referScreen ? (
-  <ReferAndEarnScreen
-    taskAmount={lifafa.claimAmount}
-    onBack={() => setReferScreen(false)}
-    onReferLink={getReferLink}
-    existingMobile={lifafa?.mobile || ""}
-    onAddMobile={addMobile}
-  />
-) : (
 
           {screen === "report" && (
             <ReportScreen lifafaId={lifafa.id} />
