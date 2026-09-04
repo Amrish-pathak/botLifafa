@@ -90,7 +90,8 @@ export default function App() {
         return;
       }
 
-      setLifafa(data.lifafa);
+      // 1) initApp() ke andar — mobile ko lifafa state ke saath merge karo
+setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
 
       switch (data.status) {
         case "new":
@@ -281,9 +282,14 @@ export default function App() {
         />
       ) : (
         <>
-          {screen === "task" && (
-            <TaskScreen lifafa={lifafa} onStart={openTask} onAddMobile={addMobile} />
-          )}
+{screen === "task" && (
+  <TaskScreen
+    lifafa={lifafa}
+    onStart={openTask}
+    onAddMobile={addMobile}
+    onOpenRefer={() => setReferScreen(true)}
+  />
+)}
 
           {screen === "claim" && (
             <ClaimScreen lifafa={lifafa} onClaim={claimReward} />
@@ -302,6 +308,17 @@ export default function App() {
               onReferClick={() => setReferScreen(true)}
             />
           )}
+
+          // 3) ReferAndEarnScreen ko existingMobile + onAddMobile do
+{referScreen ? (
+  <ReferAndEarnScreen
+    taskAmount={lifafa.claimAmount}
+    onBack={() => setReferScreen(false)}
+    onReferLink={getReferLink}
+    existingMobile={lifafa?.mobile || ""}
+    onAddMobile={addMobile}
+  />
+) : (
 
           {screen === "report" && (
             <ReportScreen lifafaId={lifafa.id} />
