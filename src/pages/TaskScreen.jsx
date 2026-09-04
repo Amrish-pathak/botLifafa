@@ -42,13 +42,6 @@ function useLockBodyScroll(locked) {
 }
 
 // ── PROGRESS CARD (module scope — TaskScreen re-render se decouple) ───────
-// ✅ FIX: pehle `totalUsers` ko `totalBudget / amountPerUser` se derive kiya
-// jaata tha. Yeh galat hai — agar admin lifafa edit karke claimAmount badal
-// de (jo kabhi bhi ho sakta hai), yeh number turant wrong ho jaata hai kyunki
-// totalBudget purane rate ke hisaab se set hua tha. Ab sirf woh values use
-// ho rahi hain jo backend se hamesha live/correct milti hain: claimedUsers
-// (actual count) aur remainingBudget (actual amount) — koi client-side
-// guess nahi jo claimAmount edit se toot sake.
 const ProgressCard = ({ lifafa }) => {
   const {
     claimedUsers = 0,
@@ -59,19 +52,19 @@ const ProgressCard = ({ lifafa }) => {
 
   const spentAmt = Math.max(0, Number(totalBudget) - Number(remainingBudget));
   const spentPct = totalBudget > 0 ? Math.min(100, (spentAmt / totalBudget) * 100) : 0;
-
-  // "Current rate" ke hisaab se estimate — clearly "~" (approx) label ke saath,
-  // taaki koi false precision na lage
   const estRemainingSlots = amountPerUser > 0 ? Math.floor(Number(remainingBudget) / amountPerUser) : 0;
 
   return (
-    <div className="bg-gradient-to-br from-[#1a1f2f] to-[#111827] border border-zinc-800 rounded-2xl p-4 space-y-4">
+    <div className="relative bg-gradient-to-br from-[#1a1f2f] to-[#111827] border border-zinc-800 rounded-2xl p-4 space-y-4 overflow-hidden">
+      {/* premium top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
+
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-amber-300/70 mb-1">
             Remaining Budget
           </p>
-          <p className="text-3xl font-black text-white leading-none">{INR(remainingBudget)}</p>
+          <p className="text-3xl font-black text-white leading-none truncate">{INR(remainingBudget)}</p>
           <p className="text-[10px] text-zinc-500 mt-1">of {INR(totalBudget)} total</p>
         </div>
 
@@ -114,10 +107,6 @@ const ProgressCard = ({ lifafa }) => {
 };
 
 // ── MOBILE NUMBER SHEET ─────────────────────────────────────────────────
-// ✅ FIX: agar `existingMobile` already hai (backend se aaya), sheet
-// "view mode" me khulti hai — number seedha dikh jaata hai, "Continue" pe
-// koi API call nahi hoti, seedha task open ho jaata hai. Sirf "Change"
-// click karne par ya naye number ke case me hi add-mobile API hit hoti hai.
 function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMobile, onOpenTask }) {
   useLockBodyScroll(open);
   const [editing, setEditing] = useState(!existingMobile);
@@ -127,8 +116,6 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
   const [success, setSuccess] = useState(false);
   const [countdown, setCountdown] = useState(3);
 
-  // ── Sheet dobara open ho to state reset — existingMobile ke hisaab se
-  // sahi mode (view/edit) set karo ────────────────────────────────────────
   useEffect(() => {
     if (open) {
       setEditing(!existingMobile);
@@ -140,7 +127,6 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
     }
   }, [open, existingMobile]);
 
-  // ── Success hote hi 3-second auto-redirect countdown ────────────────────
   useEffect(() => {
     if (!success) return;
 
@@ -177,7 +163,6 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
     if (error) setError("");
   };
 
-  // ── Naya number ya number change — sirf tabhi API hit hoti hai ─────────
   const handleSubmit = async () => {
     if (!/^[6-9][0-9]{9}$/.test(mobile)) {
       setError("Enter a valid 10-digit mobile number");
@@ -185,7 +170,6 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
       return;
     }
 
-    // User ne wahi purana number type kar diya — API hit karne ki zaroorat nahi
     if (existingMobile && mobile === existingMobile) {
       haptic();
       onClose();
@@ -200,7 +184,7 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
     try {
       await onAddMobile(mobile);
       haptic("success");
-      setSuccess(true); // ── useEffect [success] khud 3s baad onOpenTask() call karega
+      setSuccess(true);
     } catch (err) {
       haptic("error");
       setError(
@@ -212,7 +196,6 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
     }
   };
 
-  // ── Existing number ke saath seedha aage — koi API call nahi ────────────
   const handleContinueExisting = () => {
     haptic();
     onClose();
@@ -256,7 +239,6 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
             </button>
           </div>
         ) : !editing ? (
-          // ══════════════ VIEW MODE — number already saved ══════════════
           <>
             <div className="flex items-start justify-between mb-1">
               <div>
@@ -301,7 +283,6 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
             </p>
           </>
         ) : (
-          // ══════════════ EDIT MODE — naya number ya "Change" ══════════════
           <>
             <div className="flex items-start justify-between mb-1">
               <div>
@@ -376,8 +357,6 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
   const refConditionName = lifafa?.refConditionName ?? "Direct Join";
   const existingMobile = lifafa?.mobile || "";
 
-  // ── Support click — API se aaye `support` username pe seedha message
-  // ke saath redirect, telegram ID bhi attach ─────────────────────────────
   const handleSupportClick = () => {
     const supportUsername = String(lifafa?.support || "").replace("@", "").trim();
     if (!supportUsername) return;
@@ -395,16 +374,30 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white overflow-x-hidden relative scrollbar-hide">
-      {/* Hide Scrollbar */}
       <style>
         {`
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
+          .scrollbar-hide::-webkit-scrollbar { display: none; }
+          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+          @keyframes glowPulseAmber {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.45); }
+            50% { box-shadow: 0 0 0 9px rgba(251, 191, 36, 0); }
           }
-          .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+          @keyframes glowPulseBlue {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.35); }
+            50% { box-shadow: 0 0 0 7px rgba(56, 189, 248, 0); }
           }
+          @keyframes softBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+          }
+          @keyframes badgePop {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+          }
+          .fab-refer { animation: glowPulseAmber 2.2s ease-in-out infinite, softBounce 2.2s ease-in-out infinite; }
+          .fab-support { animation: glowPulseBlue 2.8s ease-in-out infinite; }
+          .fab-badge { animation: badgePop 1.5s ease-in-out infinite; }
         `}
       </style>
 
@@ -412,27 +405,35 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
       <div className="absolute top-[-120px] left-[-120px] w-[260px] h-[260px] bg-amber-500/20 blur-3xl rounded-full"></div>
       <div className="absolute bottom-[-100px] right-[-100px] w-[240px] h-[240px] bg-orange-500/20 blur-3xl rounded-full"></div>
 
-      {/* ── FLOATING RIGHT-SIDE BUTTONS — Support + Refer&Earn ────────────
-          Emoji-based icons, koi naya icon-library import nahi — lightweight
-          aur fast loading ke liye ── */}
-      <div className="fixed right-3 top-[38%] z-40 flex flex-col gap-3">
+      {/* ── FLOATING DOCK — Support + Refer, bottom-right corner, grouped ──
+          ✅ FIX: pehle `top-[38%]` pe fixed the — scroll ke sath hamesha
+          usi viewport position pe rehte the, jo Progress Card ke text ke
+          upar overlap ho jaata tha. Ab bottom-right corner me, ek grouped
+          "dock" pill me — content se kabhi overlap nahi hoga. ── */}
+      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-center gap-2 bg-white/[0.06] backdrop-blur-md border border-white/10 rounded-full p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
         <button
           onClick={handleSupportClick}
           aria-label="Support"
-          className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-blue-700 border border-white/10 shadow-[0_6px_20px_rgba(0,0,0,0.4)] flex items-center justify-center text-xl active:scale-90 transition-transform"
+          className="fab-support w-11 h-11 rounded-full bg-gradient-to-br from-sky-500 to-blue-700 border border-white/10 flex items-center justify-center text-lg active:scale-90 transition-transform"
         >
-          ☎️
+          🎧
         </button>
+
+        <div className="w-6 h-px bg-white/10" />
+
         <button
           onClick={onOpenRefer}
           aria-label="Refer & Earn"
-          className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 border border-white/10 shadow-[0_6px_20px_rgba(0,0,0,0.4)] flex items-center justify-center text-xl active:scale-90 transition-transform"
+          className="fab-refer relative w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 border border-white/10 flex items-center justify-center text-lg active:scale-90 transition-transform"
         >
           🎁
+          <span className="fab-badge absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[9px] font-black rounded-full px-1.5 py-0.5 border-2 border-[#0b0f19] shadow-md">
+            +₹
+          </span>
         </button>
       </div>
 
-      <div className="relative z-10 max-w-md mx-auto px-4 py-5 flex flex-col gap-4">
+      <div className="relative z-10 max-w-md mx-auto px-4 py-5 pb-32 flex flex-col gap-4">
         <HeaderScreen />
 
         {/* REWARD CARD */}
@@ -509,7 +510,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
           </div>
         </div>
 
-        {/* START BUTTON — sheet kholta hai (view/edit mode automatically decide hota hai) */}
+        {/* START BUTTON */}
         <button
           onClick={() => setSheetOpen(true)}
           className="relative overflow-hidden w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-lg shadow-[0_10px_30px_rgba(255,170,0,0.35)] active:scale-[0.98] transition-all"
@@ -519,7 +520,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
         </button>
 
         {/* FOOTER */}
-        <div className="text-center pt-1 pb-5">
+        <div className="text-center pt-1 pb-2">
           <p className="text-xs text-gray-500 leading-5">
             By continuing you agree to the{" "}
             <button className="text-amber-300">terms & conditions</button>
@@ -543,4 +544,4 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
       />
     </div>
   );
-    }
+}
