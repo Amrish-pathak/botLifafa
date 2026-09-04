@@ -11,6 +11,8 @@ const INR = (n) =>
 
 const NUM = (n) => new Intl.NumberFormat("en-IN").format(Number(n) || 0);
 
+const formatMobileDisplay = (m = "") => (m.length === 10 ? `${m.slice(0, 5)} ${m.slice(5)}` : m);
+
 // ── BODY SCROLL LOCK — bottom sheet khulte hi background freeze ────────────
 function useLockBodyScroll(locked) {
   useEffect(() => {
@@ -40,19 +42,33 @@ function useLockBodyScroll(locked) {
 }
 
 // ── PROGRESS CARD (module scope — TaskScreen re-render se decouple) ───────
+// ✅ FIX: pehle `totalUsers` ko `totalBudget / amountPerUser` se derive kiya
+// jaata tha. Yeh galat hai — agar admin lifafa edit karke claimAmount badal
+// de (jo kabhi bhi ho sakta hai), yeh number turant wrong ho jaata hai kyunki
+// totalBudget purane rate ke hisaab se set hua tha. Ab sirf woh values use
+// ho rahi hain jo backend se hamesha live/correct milti hain: claimedUsers
+// (actual count) aur remainingBudget (actual amount) — koi client-side
+// guess nahi jo claimAmount edit se toot sake.
 const ProgressCard = ({ lifafa }) => {
-  const { claimedUsers = 0, totalUsers = 0, remainingBudget = 0, totalBudget = 0, amountPerUser = 0 } = lifafa;
-  const progress = totalBudget / amountPerUser;
-  const claimedPct = claimedUsers > 0 ? Math.min(100, (claimedUsers / progress) * 100) : 0;
-  const spentAmt = Number(totalBudget) - Number(remainingBudget);
+  const {
+    claimedUsers = 0,
+    remainingBudget = 0,
+    totalBudget = 0,
+    amountPerUser = 0,
+  } = lifafa;
+
+  const spentAmt = Math.max(0, Number(totalBudget) - Number(remainingBudget));
   const spentPct = totalBudget > 0 ? Math.min(100, (spentAmt / totalBudget) * 100) : 0;
+
+  // "Current rate" ke hisaab se estimate — clearly "~" (approx) label ke saath,
+  // taaki koi false precision na lage
+  const estRemainingSlots = amountPerUser > 0 ? Math.floor(Number(remainingBudget) / amountPerUser) : 0;
 
   return (
     <div className="bg-gradient-to-br from-[#1a1f2f] to-[#111827] border border-zinc-800 rounded-2xl p-4 space-y-4">
-      {/* remaining budget — big display */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-xs tracking-widest text-xs text-amber-300/70 mb-1">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-amber-300/70 mb-1">
             Remaining Budget
           </p>
           <p className="text-3xl font-black text-white leading-none">{INR(remainingBudget)}</p>
@@ -79,18 +95,18 @@ const ProgressCard = ({ lifafa }) => {
 
       <div className="space-y-1.5">
         <div className="flex justify-between text-[10px] font-semibold text-zinc-500">
-          <span>Users claimed</span>
-          <span className="text-zinc-300">{NUM(claimedUsers)} / {NUM(progress - claimedUsers)}</span>
+          <span>Budget Used</span>
+          <span className="text-zinc-300">{NUM(claimedUsers)} claimed</span>
         </div>
         <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-700"
-            style={{ width: `${claimedPct}%` }}
+            style={{ width: `${spentPct}%` }}
           />
         </div>
         <div className="flex justify-between text-[9px] text-zinc-600">
-          <span>{claimedPct.toFixed(1)}% claimed</span>
-          <span>{NUM(progress - claimedUsers)} pending</span>
+          <span>{spentPct.toFixed(1)}% budget used</span>
+          <span>~{NUM(estRemainingSlots)} spots left</span>
         </div>
       </div>
     </div>
@@ -98,26 +114,31 @@ const ProgressCard = ({ lifafa }) => {
 };
 
 // ── MOBILE NUMBER SHEET ─────────────────────────────────────────────────
-// Start button click pe khulta hai. Number submit → /add-mobile call →
-// success pe task link open (parent ka onOpenTask, jo WebApp.openLink use karta hai)
-function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask }) {
+// ✅ FIX: agar `existingMobile` already hai (backend se aaya), sheet
+// "view mode" me khulti hai — number seedha dikh jaata hai, "Continue" pe
+// koi API call nahi hoti, seedha task open ho jaata hai. Sirf "Change"
+// click karne par ya naye number ke case me hi add-mobile API hit hoti hai.
+function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMobile, onOpenTask }) {
   useLockBodyScroll(open);
+  const [editing, setEditing] = useState(!existingMobile);
   const [mobile, setMobile] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [countdown, setCountdown] = useState(3);
 
-  // ── Sheet dobara open ho to purana state clear ─────────────────────────
+  // ── Sheet dobara open ho to state reset — existingMobile ke hisaab se
+  // sahi mode (view/edit) set karo ────────────────────────────────────────
   useEffect(() => {
     if (open) {
-      setMobile("");
+      setEditing(!existingMobile);
+      setMobile(existingMobile || "");
       setError("");
       setSubmitting(false);
       setSuccess(false);
       setCountdown(3);
     }
-  }, [open]);
+  }, [open, existingMobile]);
 
   // ── Success hote hi 3-second auto-redirect countdown ────────────────────
   useEffect(() => {
@@ -156,10 +177,19 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
     if (error) setError("");
   };
 
+  // ── Naya number ya number change — sirf tabhi API hit hoti hai ─────────
   const handleSubmit = async () => {
     if (!/^[6-9][0-9]{9}$/.test(mobile)) {
       setError("Enter a valid 10-digit mobile number");
       haptic("error");
+      return;
+    }
+
+    // User ne wahi purana number type kar diya — API hit karne ki zaroorat nahi
+    if (existingMobile && mobile === existingMobile) {
+      haptic();
+      onClose();
+      onOpenTask();
       return;
     }
 
@@ -169,7 +199,6 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
 
     try {
       await onAddMobile(mobile);
-
       haptic("success");
       setSuccess(true); // ── useEffect [success] khud 3s baad onOpenTask() call karega
     } catch (err) {
@@ -181,6 +210,13 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // ── Existing number ke saath seedha aage — koi API call nahi ────────────
+  const handleContinueExisting = () => {
+    haptic();
+    onClose();
+    onOpenTask();
   };
 
   if (!open) return null;
@@ -195,10 +231,77 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
         style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle */}
         <div className="w-10 h-1.5 bg-white/15 rounded-full mx-auto mb-4" />
 
-        {!success ? (
+        {success ? (
+          <div className="text-center py-2 pb-1">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4 text-3xl">
+              ✅
+            </div>
+            <h3 className="text-lg font-bold text-white">Task Started!</h3>
+            <p className="text-xs text-gray-400 mt-1.5 mb-1">
+              Complete Provided Task &amp; automatically Recieved Money in Your TaskWala Wallet.
+            </p>
+            <p className="text-[11px] text-amber-300/80 mb-5">
+              Redirecting in {countdown}s…
+            </p>
+            <button
+              onClick={onOpenTask}
+              className="w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-base shadow-[0_10px_30px_rgba(255,170,0,0.3)] active:scale-[0.98] transition-all"
+            >
+              Let's Complete &amp; Earn
+            </button>
+            <button onClick={onClose} className="w-full h-11 mt-2 rounded-2xl text-gray-400 text-sm font-medium active:scale-95 transition-all">
+              Close
+            </button>
+          </div>
+        ) : !editing ? (
+          // ══════════════ VIEW MODE — number already saved ══════════════
+          <>
+            <div className="flex items-start justify-between mb-1">
+              <div>
+                <h3 className="text-lg font-bold text-white">Wallet Number</h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Reward ₹{claimAmount} isi number pe credit hoga
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-9 h-9 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 active:scale-95 transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-2xl px-4 h-14">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 font-semibold text-base">+91</span>
+                <div className="w-px h-6 bg-white/10" />
+                <span className="text-white text-lg font-semibold tracking-wide">
+                  {formatMobileDisplay(existingMobile)}
+                </span>
+              </div>
+              <button
+                onClick={() => { setEditing(true); setMobile(existingMobile); }}
+                className="text-amber-300 text-xs font-bold active:opacity-70 px-1"
+              >
+                Change
+              </button>
+            </div>
+
+            <button
+              onClick={handleContinueExisting}
+              className="w-full h-14 mt-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-base shadow-[0_10px_30px_rgba(255,170,0,0.3)] active:scale-[0.98] transition-all"
+            >
+              Continue & Start Task
+            </button>
+
+            <p className="text-center text-[10px] text-gray-600 mt-3 pb-1">
+              Number sirf reward payout ke liye use hoga
+            </p>
+          </>
+        ) : (
+          // ══════════════ EDIT MODE — naya number ya "Change" ══════════════
           <>
             <div className="flex items-start justify-between mb-1">
               <div>
@@ -209,7 +312,7 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
               </div>
               {!submitting && (
                 <button
-                  onClick={onClose}
+                  onClick={existingMobile ? () => { setEditing(false); setError(""); } : onClose}
                   className="w-9 h-9 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 active:scale-95 transition-all"
                 >
                   ✕
@@ -258,40 +361,37 @@ function MobileNumberSheet({ open, onClose, claimAmount, onAddMobile, onOpenTask
               Number sirf reward payout ke liye use hoga
             </p>
           </>
-        ) : (
-          <div className="text-center py-2 pb-1">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4 text-3xl">
-              ✅
-            </div>
-            <h3 className="text-lg font-bold text-white">Task Started!</h3>
-            <p className="text-xs text-gray-400 mt-1.5 mb-1">
-              Complete Provided Task &amp; automatically Recieved Money in Your TaskWala Wallet.
-            </p>
-            <p className="text-[11px] text-amber-300/80 mb-5">
-              Redirecting in {countdown}s…
-            </p>
-            <button
-              onClick={onOpenTask}
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-base shadow-[0_10px_30px_rgba(255,170,0,0.3)] active:scale-[0.98] transition-all"
-            >
-              Let's Complete &amp; Earn
-            </button>
-            <button onClick={onClose} className="w-full h-11 mt-2 rounded-2xl text-gray-400 text-sm font-medium active:scale-95 transition-all">
-              Close
-            </button>
-          </div>
         )}
       </div>
     </div>
   );
 }
-export default function TaskScreen({ lifafa, onStart, onAddMobile }) {
+
+export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }) {
   const [showSteps, setShowSteps] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const title = lifafa?.title || "Premium Classic Task";
   const claimAmount = lifafa?.claimAmount ?? "0";
-  const refConditionName = lifafa?.refConditionName ?? "0";
+  const refConditionName = lifafa?.refConditionName ?? "Direct Join";
+  const existingMobile = lifafa?.mobile || "";
+
+  // ── Support click — API se aaye `support` username pe seedha message
+  // ke saath redirect, telegram ID bhi attach ─────────────────────────────
+  const handleSupportClick = () => {
+    const supportUsername = String(lifafa?.support || "").replace("@", "").trim();
+    if (!supportUsername) return;
+
+    const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "";
+    const message = `I want help on bot Lifafa.\nMy Telegram ID: ${tgId}`;
+    const url = `https://t.me/${supportUsername}?text=${encodeURIComponent(message)}`;
+
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(url);
+    } else {
+      window.open(url, "_blank");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white overflow-x-hidden relative scrollbar-hide">
@@ -311,6 +411,26 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile }) {
       {/* Glow BG */}
       <div className="absolute top-[-120px] left-[-120px] w-[260px] h-[260px] bg-amber-500/20 blur-3xl rounded-full"></div>
       <div className="absolute bottom-[-100px] right-[-100px] w-[240px] h-[240px] bg-orange-500/20 blur-3xl rounded-full"></div>
+
+      {/* ── FLOATING RIGHT-SIDE BUTTONS — Support + Refer&Earn ────────────
+          Emoji-based icons, koi naya icon-library import nahi — lightweight
+          aur fast loading ke liye ── */}
+      <div className="fixed right-3 top-[38%] z-40 flex flex-col gap-3">
+        <button
+          onClick={handleSupportClick}
+          aria-label="Support"
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-blue-700 border border-white/10 shadow-[0_6px_20px_rgba(0,0,0,0.4)] flex items-center justify-center text-xl active:scale-90 transition-transform"
+        >
+          🎧
+        </button>
+        <button
+          onClick={onOpenRefer}
+          aria-label="Refer & Earn"
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 border border-white/10 shadow-[0_6px_20px_rgba(0,0,0,0.4)] flex items-center justify-center text-xl active:scale-90 transition-transform"
+        >
+          🎁
+        </button>
+      </div>
 
       <div className="relative z-10 max-w-md mx-auto px-4 py-5 flex flex-col gap-4">
         <HeaderScreen />
@@ -365,7 +485,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile }) {
               showSteps ? "max-h-[500px] opacity-100 p-4 pt-0" : "max-h-0 opacity-0"
             }`}
           >
-            <div className="space-y-3">
+             <div className="space-y-3">
               {[
                 { icon: "🚀", title: "Start Task", desc: "Tap the button below to begin." },
                 { icon: "📢", title: "Join Channel", desc: "Complete Telegram verification." },
@@ -389,7 +509,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile }) {
           </div>
         </div>
 
-        {/* START BUTTON — ab bottom sheet kholta hai, seedha task open nahi karta */}
+        {/* START BUTTON — sheet kholta hai (view/edit mode automatically decide hota hai) */}
         <button
           onClick={() => setSheetOpen(true)}
           className="relative overflow-hidden w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-lg shadow-[0_10px_30px_rgba(255,170,0,0.35)] active:scale-[0.98] transition-all"
@@ -417,9 +537,10 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile }) {
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         claimAmount={claimAmount}
+        existingMobile={existingMobile}
         onAddMobile={onAddMobile}
         onOpenTask={onStart}
       />
     </div>
   );
-              }
+    }
