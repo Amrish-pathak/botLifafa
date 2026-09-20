@@ -13,6 +13,7 @@ import SuccessScreen from "./pages/SuccessScreen";
 import AlreadyClaimed from "./pages/AlreadyClaimed";
 import ReferAndEarnScreen from "./pages/ReferAndEarnScreen";
 import ReportScreen from "./pages/ReportScreen";
+import LifafaEndedScreen from "./pages/LifafaEndedScreen";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,7 @@ export default function App() {
   const [referScreen, setReferScreen] = useState(false);
   const [referSuccess, setReferSuccess] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [endedInfo, setEndedInfo] = useState(null); // { status, message, lifafa }
 
   const initApp = async () => {
     try {
@@ -75,6 +77,20 @@ export default function App() {
       const data = res.data;
 
       if (!data?.success) {
+        // ✅ over / complete / inactive — backend ab lifafa ka poora
+        // summary (budget, claimedUsers, amountPerUser, support) bhi
+        // bhejta hai, isliye generic error ki jagah dedicated screen
+        const endedStatuses = ["over", "complete", "inactive"];
+        if (endedStatuses.includes(data?.status)) {
+          setEndedInfo({
+            status: data.status,
+            message: data.message,
+            lifafa: data.lifafa || null,
+          });
+          setScreen("ended");
+          return;
+        }
+
         setError({
           title: "Invalid Lifafa",
           message: data?.message || "Expired or invalid link",
@@ -314,8 +330,16 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
           {screen === "report" && (
             <ReportScreen lifafaId={lifafa.id} />
           )}
+
+          {screen === "ended" && endedInfo && (
+            <LifafaEndedScreen
+              status={endedInfo.status}
+              message={endedInfo.message}
+              lifafa={endedInfo.lifafa}
+            />
+          )}
         </>
       )}
     </>
   );
-}
+    }
