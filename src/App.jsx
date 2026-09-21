@@ -332,11 +332,7 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
           )}
 
           {screen === "ended" && endedInfo && (
-            <LifafaEndedScreen
-              status={endedInfo.status}
-              message={endedInfo.message}
-              lifafa={endedInfo.lifafa}
-            />
+            <LifafaEndedScreen status={res.status} message={res.message} lifafa={res.lifafa} alreadyStarted={res.alreadyStarted} inviteStatus={res.inviteStatus} />
           )}
         </>
       )}
