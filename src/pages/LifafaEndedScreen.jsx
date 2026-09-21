@@ -7,22 +7,43 @@ const NUM = (n) => new Intl.NumberFormat("en-IN").format(Number(n) || 0);
 
 const STATUS_THEME = {
   over: {
-    emoji: "💸", badge: "BUDGET OVER", heading: "Lifafa Over Ho Gaya!",
+    emoji: "💸",
+    badge: "BUDGET OVER",
+    heading: "Lifafa Over Ho Gaya!",
     subtitle: "Is lifafa ka pura budget claim ho chuka hai. Naye lifafa ka wait kare.",
-    ring: "#f43f5e", glow: "bg-rose-500/20", chip: "bg-rose-500/10 text-rose-300 border-rose-400/20",
-    gradient: "from-rose-500 via-red-500 to-rose-600", shadow: "shadow-[0_10px_30px_rgba(244,63,94,0.35)]",
+    ring: "#f43f5e",
+    glow: "bg-rose-500/20",
+    chip: "bg-rose-500/10 text-rose-300 border-rose-400/20",
+    dot: "bg-rose-400",
+    gradient: "from-rose-500 via-red-500 to-rose-600",
+    logoGradient: "from-rose-500/25 to-red-600/10",
+    shadow: "shadow-[0_10px_30px_rgba(244,63,94,0.35)]",
   },
   complete: {
-    emoji: "✅", badge: "COMPLETED", heading: "Lifafa Complete Ho Gaya!",
+    emoji: "✅",
+    badge: "COMPLETED",
+    heading: "Lifafa Complete Ho Gaya!",
     subtitle: "Is lifafa ke saare slots fill ho chuke hain.",
-    ring: "#38bdf8", glow: "bg-sky-500/20", chip: "bg-sky-500/10 text-sky-300 border-sky-400/20",
-    gradient: "from-sky-400 via-blue-500 to-sky-600", shadow: "shadow-[0_10px_30px_rgba(56,189,248,0.35)]",
+    ring: "#38bdf8",
+    glow: "bg-sky-500/20",
+    chip: "bg-sky-500/10 text-sky-300 border-sky-400/20",
+    dot: "bg-sky-400",
+    gradient: "from-sky-400 via-blue-500 to-sky-600",
+    logoGradient: "from-sky-500/25 to-blue-600/10",
+    shadow: "shadow-[0_10px_30px_rgba(56,189,248,0.35)]",
   },
   inactive: {
-    emoji: "⏸️", badge: "INACTIVE", heading: "Lifafa Abhi Inactive Hai",
+    emoji: "⏸️",
+    badge: "INACTIVE",
+    heading: "Lifafa Abhi Inactive Hai",
     subtitle: "Yeh lifafa filhaal active nahi hai. Thodi der baad try kare.",
-    ring: "#fbbf24", glow: "bg-amber-500/20", chip: "bg-amber-500/10 text-amber-300 border-amber-400/20",
-    gradient: "from-amber-400 via-orange-500 to-amber-500", shadow: "shadow-[0_10px_30px_rgba(255,170,0,0.35)]",
+    ring: "#fbbf24",
+    glow: "bg-amber-500/20",
+    chip: "bg-amber-500/10 text-amber-300 border-amber-400/20",
+    dot: "bg-amber-400",
+    gradient: "from-amber-400 via-orange-500 to-amber-500",
+    logoGradient: "from-amber-500/25 to-orange-600/10",
+    shadow: "shadow-[0_10px_30px_rgba(255,170,0,0.35)]",
   },
 };
 
@@ -57,7 +78,7 @@ export default function LifafaEndedScreen({ status, message, lifafa, alreadyStar
   const [copied, setCopied] = useState(false);
   const theme = STATUS_THEME[status] || STATUS_THEME.inactive;
 
-  const title = lifafa?.title || "";
+  const title = lifafa?.title || "TaskWala";
   const totalBudget = Number(lifafa?.totalBudget || 0);
   const remainingBudget = Number(lifafa?.remainingBudget || 0);
   const claimedUsers = Number(lifafa?.claimedUsers ?? 0);
@@ -66,10 +87,8 @@ export default function LifafaEndedScreen({ status, message, lifafa, alreadyStar
   const spentAmt = Math.max(0, totalBudget - remainingBudget);
   const spentPct = totalBudget > 0 ? Math.min(100, (spentAmt / totalBudget) * 100) : 100;
 
-  // ✅ NEW — 5-min grace window sirf "over" status pe, aur sirf jab user ne
-  // pehle se task start kar rakha ho (invite already exist karta ho) aur
-  // abhi "claimed" na ho chuka ho (paisa mil chuka ho to timer dikhane ka
-  // matlab nahi)
+  // 5-min grace window sirf "over" status pe, sirf jab user pehle se task
+  // start kar chuka ho (invite exist karta ho) aur abhi claimed na ho
   const deadlineIso = lifafa?.listenerStopAt || null;
   const remainingSeconds = useCountdown(status === "over" ? deadlineIso : null);
   const showGraceWindow =
@@ -114,72 +133,47 @@ export default function LifafaEndedScreen({ status, message, lifafa, alreadyStar
           .pulse-emoji-ended { animation: softPulseEnded 2.4s ease-in-out infinite; }
           @keyframes urgentPulse { 0%,100%{opacity:1} 50%{opacity:.55} }
           .urgent-pulse { animation: urgentPulse 1s ease-in-out infinite; }
+          @keyframes dotPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+          .dot-pulse { animation: dotPulse 1.6s ease-in-out infinite; }
         `}
       </style>
 
-      <div className={`absolute top-[-120px] left-[-120px] w-[260px] h-[260px] ${theme.glow} blur-3xl rounded-full`}></div>
-      <div className={`absolute bottom-[-100px] right-[-100px] w-[240px] h-[240px] ${theme.glow} blur-3xl rounded-full`}></div>
+      <div className={`absolute top-[-120px] left-[-120px] w-[260px] h-[260px] ${theme.glow} blur-3xl rounded-full pointer-events-none`}></div>
+      <div className={`absolute bottom-[-100px] right-[-100px] w-[240px] h-[240px] ${theme.glow} blur-3xl rounded-full pointer-events-none`}></div>
 
       <div className="relative z-10 max-w-md mx-auto px-4 py-5 pb-10 flex flex-col gap-4">
         <HeaderScreen />
 
-        {/* ✅ NEW — Urgent 5-min grace banner, sabse upar taaki miss na ho */}
-        {showGraceWindow && (
-          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500/20 to-red-500/10 border-2 border-amber-400/40 rounded-2xl p-4 shadow-[0_10px_30px_rgba(251,191,36,0.25)]">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-xl shrink-0 urgent-pulse">
-                ⚡
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-amber-300 font-extrabold text-sm leading-tight">
-                  Aapne pehle se task start kiya hai!
-                </p>
-                <p className="text-[11px] text-amber-100/80 mt-0.5 leading-snug">
-                  Jaldi apna task complete karo — sirf itni der me hi manual process hoga, uske baad payment nahi milega.
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-center gap-2 bg-black/30 rounded-xl py-2.5">
-              <span className="text-2xl">⏳</span>
-              <span className="text-2xl font-black tabular-nums text-amber-300 tracking-wider">
-                {formatMMSS(remainingSeconds)}
-              </span>
-              <span className="text-[10px] text-amber-100/60 font-semibold uppercase tracking-widest">remaining</span>
-            </div>
-          </div>
-        )}
-
-        {/* ✅ NEW — Window expire ho chuki hai, generic support-contact message */}
-        {graceWindowJustExpired && (
-          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-center">
-            <p className="text-gray-300 text-sm font-semibold">Processing window band ho chuki hai</p>
-            <p className="text-gray-500 text-xs mt-1">
-              Agar aapne task complete kar liya tha, support se contact karo — admin manually check karega.
+        {/* ── BOT / TASK IDENTITY ROW — naam left (big), logo right ───────── */}
+        <div className="flex items-center justify-between gap-3 px-1">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-500 mb-1">
+              Task
             </p>
+            <h1 className="text-[26px] leading-[1.1] font-black text-white truncate">
+              {title}
+            </h1>
           </div>
-        )}
 
-        {/* STATUS HERO CARD */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#1a1f2f] to-[#111827] border border-white/10 rounded-[30px] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.45)] text-center">
-          <div className={`absolute top-0 right-0 w-32 h-32 ${theme.glow} blur-3xl rounded-full`}></div>
-          <div className="relative z-10 flex flex-col items-center">
-            <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.25em] px-3 py-1 rounded-full border mb-4 ${theme.chip}`}>
-              {theme.badge}
-            </span>
-            <div className="w-20 h-20 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-4xl pulse-emoji-ended mb-4">
-              {theme.emoji}
-            </div>
-            <h1 className="text-xl font-extrabold leading-tight">{theme.heading}</h1>
-            <p className="text-sm text-gray-400 mt-2 leading-relaxed">{message || theme.subtitle}</p>
-            {title && (
-              <div className="mt-4 w-full bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
-                <span className="text-xs text-gray-500 font-semibold shrink-0">Task</span>
-                <span className="text-sm font-bold truncate max-w-[220px]">{title}</span>
-              </div>
-            )}
+          <div
+            className={`shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br ${theme.logoGradient} border border-white/10 flex items-center justify-center text-3xl shadow-lg pulse-emoji-ended`}
+          >
+            🧧
           </div>
         </div>
 
+        {/* ── MESSAGE CARD ─────────────────────────────────────────────── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#1a1f2f] to-[#111827] border border-white/10 rounded-[28px] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+          <div className={`absolute top-0 right-0 w-32 h-32 ${theme.glow} blur-3xl rounded-full pointer-events-none`}></div>
+          <div className="relative z-10">
+            <h2 className="text-lg font-extrabold leading-snug">{theme.heading}</h2>
+            <p className="text-sm text-gray-400 mt-1.5 leading-relaxed">
+              {message || theme.subtitle}
+            </p>
+          </div>
+        </div>
+
+        {/* ── BUDGET / PROGRESS CARD ───────────────────────────────────── */}
         {(totalBudget > 0 || claimedUsers > 0) && (
           <div className="relative bg-gradient-to-br from-[#1a1f2f] to-[#111827] border border-zinc-800 rounded-2xl p-4 space-y-4 overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[2px]"
@@ -221,6 +215,44 @@ export default function LifafaEndedScreen({ status, message, lifafa, alreadyStar
           </div>
         )}
 
+        {/* ── SPACER — timer/support ko bottom actions ke paas group karta hai ── */}
+        <div className="flex-1 min-h-[4px]" />
+
+        {/* ── GRACE TIMER — ab seedha Support button ke UPAR, action se juda hua ── */}
+        {showGraceWindow && (
+          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500/20 to-red-500/10 border-2 border-amber-400/40 rounded-2xl p-3.5 shadow-[0_10px_30px_rgba(251,191,36,0.25)]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-lg shrink-0 urgent-pulse">
+                ⚡
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-amber-300 font-extrabold text-[13px] leading-tight">
+                  Jaldi task complete karo!
+                </p>
+                <p className="text-[10.5px] text-amber-100/75 mt-0.5 leading-snug">
+                  Itni der tak hi manual process hoga.
+                </p>
+              </div>
+              <div className="shrink-0 flex items-center gap-1.5 bg-black/30 rounded-xl px-3 py-2">
+                <span className="text-base">⏳</span>
+                <span className="text-lg font-black tabular-nums text-amber-300 tracking-wider">
+                  {formatMMSS(remainingSeconds)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {graceWindowJustExpired && (
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-3.5 text-center">
+            <p className="text-gray-300 text-sm font-semibold">Processing window band ho chuki hai</p>
+            <p className="text-gray-500 text-xs mt-1">
+              Agar task complete kar liya tha, support se contact karo — admin manually check karega.
+            </p>
+          </div>
+        )}
+
+        {/* ── ACTIONS ───────────────────────────────────────────────────── */}
         <button onClick={handleSupportClick}
           className={`relative overflow-hidden w-full h-14 rounded-2xl bg-gradient-to-r ${theme.gradient} text-black font-extrabold text-lg ${theme.shadow} active:scale-[0.98] transition-all`}>
           <span className="relative z-10">🎧 Contact Support</span>
@@ -232,12 +264,20 @@ export default function LifafaEndedScreen({ status, message, lifafa, alreadyStar
           Close
         </button>
 
-        {lifafa?.id && (
-          <button onClick={copyId} className="flex items-center justify-center gap-2 text-[11px] text-gray-500">
-            <span>Lifafa ID: {lifafa.id}</span>
-            <span className="text-amber-300 font-bold">{copied ? "Copied ✓" : "Copy"}</span>
-          </button>
-        )}
+        {/* ── STATUS — ab bottom-center, final confirmation ki tarah ──────── */}
+        <div className="flex flex-col items-center gap-2 pt-1">
+          <span className={`inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border ${theme.chip}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${theme.dot} dot-pulse`}></span>
+            {theme.badge}
+          </span>
+
+          {lifafa?.id && (
+            <button onClick={copyId} className="flex items-center justify-center gap-2 text-[11px] text-gray-500">
+              <span>Lifafa ID: {lifafa.id}</span>
+              <span className="text-amber-300 font-bold">{copied ? "Copied ✓" : "Copy"}</span>
+            </button>
+          )}
+        </div>
 
         <div className="text-center pt-1 pb-2">
           <p className="text-[11px] text-gray-600">
