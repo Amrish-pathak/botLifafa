@@ -86,6 +86,8 @@ export default function App() {
             status: data.status,
             message: data.message,
             lifafa: data.lifafa || null,
+            alreadyStarted: data.alreadyStarted,
+            inviteStatus: data.inviteStatus,
           });
           setScreen("ended");
           return;
@@ -332,7 +334,13 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
           )}
 
           {screen === "ended" && endedInfo && (
-            <LifafaEndedScreen status={data.status} message={data.message} lifafa={data.lifafa} alreadyStarted={data.alreadyStarted} inviteStatus={data.inviteStatus} />
+             <LifafaEndedScreen
+              status={endedInfo.status}
+              message={endedInfo.message}
+              lifafa={endedInfo.lifafa}
+              alreadyStarted={endedInfo.alreadyStarted}
+              inviteStatus={endedInfo.inviteStatus}
+            />
           )}
         </>
       )}
