@@ -27,8 +27,8 @@ export default function App() {
   const [endedInfo, setEndedInfo] = useState(null); // { status, message, lifafa }
 
   const initApp = async () => {
+    WebApp.ready();
     try {
-      WebApp.ready();
 
       const user = WebApp.initDataUnsafe?.user;
       const startParam = WebApp.initDataUnsafe?.start_param;
