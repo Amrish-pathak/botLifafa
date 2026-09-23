@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 
 import api from "./services/api";
@@ -7,13 +7,13 @@ import SplashScreen from "./components/SplashScreen";
 import ErrorScreen from "./components/ErrorScreen";
 import ReferSuccessModal from "./components/ReferSuccessModal";
 
-import TaskScreen from "./pages/TaskScreen";
-import ClaimScreen from "./pages/ClaimScreen";
-import SuccessScreen from "./pages/SuccessScreen";
-import AlreadyClaimed from "./pages/AlreadyClaimed";
-import ReferAndEarnScreen from "./pages/ReferAndEarnScreen";
-import ReportScreen from "./pages/ReportScreen";
-import LifafaEndedScreen from "./pages/LifafaEndedScreen";
+const TaskScreen = lazy(() => import("./pages/TaskScreen"));
+const ClaimScreen = lazy(() => import("./pages/ClaimScreen"));
+const SuccessScreen = lazy(() => import("./pages/SuccessScreen"));
+const AlreadyClaimed = lazy(() => import("./pages/AlreadyClaimed"));
+const ReferAndEarnScreen = lazy(() => import("./pages/ReferAndEarnScreen"));
+const ReportScreen = lazy(() => import("./pages/ReportScreen"));
+const LifafaEndedScreen = lazy(() => import("./pages/LifafaEndedScreen"));
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -273,7 +273,9 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
   }
 
   return (
+  
     <>
+      <Suspense fallback={<SplashScreen />}>
       {referSuccess && (
         <ReferSuccessModal
           referLink={referSuccess.referLink}
@@ -344,6 +346,8 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
           )}
         </>
       )}
+      </Suspense>
+        
     </>
   );
     }
