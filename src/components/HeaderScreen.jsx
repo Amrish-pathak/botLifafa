@@ -2,6 +2,7 @@ import WebApp from "@twa-dev/sdk";
 
 export default function HeaderScreen() {
   const tgUser = WebApp?.initDataUnsafe?.user;
+  const [imgError, setImgError] = useState(false);
 
   const hasUser = tgUser?.id;
 
@@ -20,14 +21,21 @@ export default function HeaderScreen() {
               {/* PROFILE */}
               <div className="relative shrink-0">
 
-                {
-                  tgUser?.photo_url ? (
-
-                    <img
-                      src={tgUser.photo_url}
-                      alt=""
-                      className="w-16 h-16 rounded-full object-cover border border-white/10 shadow-lg"
-                    />
+                {tgUser?.photo_url && !imgError ? (
+  <img
+    src={tgUser.photo_url}
+    alt=""
+    loading="lazy"
+    width="64"
+    height="64"
+    className="w-16 h-16 rounded-full object-cover border border-white/10 shadow-lg"
+    onError={() => setImgError(true)}
+  />
+) : (
+  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 flex items-center justify-center text-2xl font-bold shadow-lg">
+    {tgUser?.first_name ? tgUser.first_name.charAt(0) : "U"}
+  </div>
+)}
 
                   ) : (
 
