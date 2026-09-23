@@ -379,22 +379,6 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
           .scrollbar-hide::-webkit-scrollbar { display: none; }
           .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-          @keyframes glowPulseAmber {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.45); }
-            50% { box-shadow: 0 0 0 9px rgba(251, 191, 36, 0); }
-          }
-          @keyframes glowPulseBlue {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.35); }
-            50% { box-shadow: 0 0 0 7px rgba(56, 189, 248, 0); }
-          }
-          @keyframes softBounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-          }
-          @keyframes badgePop {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.12); }
-          }
           .fab-refer { animation: glowPulseAmber 2.2s ease-in-out infinite, softBounce 2.2s ease-in-out infinite; }
           .fab-support { animation: glowPulseBlue 2.8s ease-in-out infinite; }
           .fab-badge { animation: badgePop 1.5s ease-in-out infinite; }
