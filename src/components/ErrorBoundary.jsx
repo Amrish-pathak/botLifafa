@@ -3,44 +3,43 @@ import { Component } from "react";
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, debugMessage: "", debugStack: "" };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, debugMessage: error?.message || String(error) };
   }
 
-  componentDidCatch(error) {
-    console.error("Chunk load / render error:", error);
-
-    const isChunkError =
-      /dynamically imported module|Failed to fetch|Loading chunk/i.test(
-        error?.message || ""
-      );
-
-    // ⚡ Agar yeh chunk-load error hai (purana cached index.html ki wajah se)
-    // toh sirf EK baar silently reload karo — user ko button dikhane se pehle
-    const alreadyRetried = sessionStorage.getItem("chunk-reload-attempted");
-
-    if (isChunkError && !alreadyRetried) {
-      sessionStorage.setItem("chunk-reload-attempted", "1");
-      window.location.reload();
-    }
+  componentDidCatch(error, info) {
+    console.error("Chunk load / render error:", error, info);
+    this.setState({
+      debugMessage: error?.message || String(error),
+      debugStack: info?.componentStack || "",
+    });
   }
 
   handleRetry = () => {
-    sessionStorage.removeItem("chunk-reload-attempted");
     window.location.reload();
   };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center justify-center gap-4 px-6 text-center">
-          <p className="text-lg font-semibold">Connection slow ho gayi</p>
-          <p className="text-sm text-gray-400">
-            Page load karne me problem aayi. Dobara try karo.
-          </p>
+        <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center justify-center gap-4 px-6 text-center overflow-y-auto py-10">
+          <p className="text-lg font-semibold">Error aayi</p>
+
+          {/* ⚠️ TEMPORARY DEBUG — baad me hata dena */}
+          <div className="w-full max-w-sm bg-red-950/40 border border-red-500/40 rounded-xl p-4 text-left">
+            <p className="text-red-400 text-xs font-mono break-words whitespace-pre-wrap">
+              {this.state.debugMessage}
+            </p>
+            {this.state.debugStack && (
+              <p className="text-red-300/60 text-[10px] font-mono break-words whitespace-pre-wrap mt-2">
+                {this.state.debugStack}
+              </p>
+            )}
+          </div>
+
           <button
             onClick={this.handleRetry}
             className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold"
