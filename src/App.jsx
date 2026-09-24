@@ -15,6 +15,7 @@ const AlreadyClaimed = lazy(() => import("./pages/AlreadyClaimed"));
 const ReferAndEarnScreen = lazy(() => import("./pages/ReferAndEarnScreen"));
 const ReportScreen = lazy(() => import("./pages/ReportScreen"));
 const LifafaEndedScreen = lazy(() => import("./pages/LifafaEndedScreen"));
+const ActiveTasksScreen = lazy(() => import("./pages/ActiveTasksScreen"));
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -50,6 +51,11 @@ export default function App() {
           message: "Lifafa ID missing",
         });
         return;
+      }
+      if (startParam === "all_task") {
+  setScreen("activeTasks");
+  setLoading(false);
+  return;
       }
 
       if (startParam.startsWith("report_")) {
@@ -336,6 +342,7 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
           {screen === "report" && (
             <ReportScreen lifafaId={lifafa.id} />
           )}
+          {screen === "activeTasks" && <ActiveTasksScreen />}
 
           {screen === "ended" && endedInfo && (
              <LifafaEndedScreen
