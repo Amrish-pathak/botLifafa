@@ -6,6 +6,7 @@ import api from "./services/api";
 import SplashScreen from "./components/SplashScreen";
 import ErrorScreen from "./components/ErrorScreen";
 import ReferSuccessModal from "./components/ReferSuccessModal";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const TaskScreen = lazy(() => import("./pages/TaskScreen"));
 const ClaimScreen = lazy(() => import("./pages/ClaimScreen"));
@@ -275,6 +276,7 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
   return (
   
     <>
+      <ErrorBoundary>
       <Suspense fallback={<SplashScreen />}>
       {referSuccess && (
         <ReferSuccessModal
@@ -347,6 +349,8 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
         </>
       )}
       </Suspense>
+      </ErrorBoundary>
+          
         
     </>
   );
