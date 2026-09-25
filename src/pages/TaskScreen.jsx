@@ -400,7 +400,10 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer, 
 
       {/* CONTENT — bachi hui height le lega, zaroorat pade tabhi andar scroll hoga */}
       <div className="relative z-10 flex-1 min-h-0 overflow-y-auto scrollbar-hide">
-        <div className="max-w-md mx-auto px-4 py-3 [@media(max-height:700px)]:py-2 flex flex-col gap-3 [@media(max-height:700px)]:gap-2 pb-6">
+        <div
+  className="max-w-md mx-auto px-4 py-3 [@media(max-height:700px)]:py-2 flex flex-col gap-3 [@media(max-height:700px)]:gap-2"
+  style={{ paddingBottom: "calc(6.5rem + env(safe-area-inset-bottom))" }}
+>
 
           {/* REWARD CARD */}
           <div className="relative overflow-hidden bg-gradient-to-br from-[#1a1f2f] to-[#111827] border border-white/10 rounded-[26px] p-4 [@media(max-height:700px)]:p-3 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
