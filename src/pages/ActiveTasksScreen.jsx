@@ -18,7 +18,7 @@ export default function ActiveTasksScreen() {
 
   useEffect(() => {
     api
-      .get("/botlifafa/active-tasks")
+      .get("/api/bottasks/active-tasks")
       .then((res) => setData(res.data))
       .catch((err) => console.error("active-tasks fetch error:", err))
       .finally(() => setLoading(false));
