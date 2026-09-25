@@ -1,7 +1,10 @@
 export default function BottomNav({ onSupport, onAllTasks, onRefer }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
-      <div className="max-w-md mx-auto px-4 pb-4">
+      <div
+        className="max-w-md mx-auto px-4"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      >
         <div className="flex items-center justify-between bg-white/[0.06] backdrop-blur-md border border-white/10 rounded-3xl px-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
 
           {/* SUPPORT — left */}
