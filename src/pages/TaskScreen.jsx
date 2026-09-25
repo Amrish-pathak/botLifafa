@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import HeaderScreen from "../components/HeaderScreen";
+import BottomNav from "../components/BottomNav";
 
 // ── UTILS (module scope — instances har render pe naye nahi banenge) ──────
 const INR = (n) =>
@@ -107,7 +108,7 @@ const ProgressCard = ({ lifafa }) => {
 };
 
 // ── MOBILE NUMBER SHEET ─────────────────────────────────────────────────
-function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMobile, onOpenTask }) {
+function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMobile, onOpenTask ,onOpenAllTasks}) {
   useLockBodyScroll(open);
   const [editing, setEditing] = useState(!existingMobile);
   const [mobile, setMobile] = useState("");
@@ -389,34 +390,6 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
       <div className="absolute top-[-120px] left-[-120px] w-[260px] h-[260px] bg-amber-500/20 blur-3xl rounded-full"></div>
       <div className="absolute bottom-[-100px] right-[-100px] w-[240px] h-[240px] bg-orange-500/20 blur-3xl rounded-full"></div>
 
-      {/* ── FLOATING DOCK — Support + Refer, bottom-right corner, grouped ──
-          ✅ FIX: pehle `top-[38%]` pe fixed the — scroll ke sath hamesha
-          usi viewport position pe rehte the, jo Progress Card ke text ke
-          upar overlap ho jaata tha. Ab bottom-right corner me, ek grouped
-          "dock" pill me — content se kabhi overlap nahi hoga. ── */}
-      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-center gap-2 bg-white/[0.06] backdrop-blur-md border border-white/10 rounded-full p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
-        <button
-          onClick={handleSupportClick}
-          aria-label="Support"
-          className="fab-support w-11 h-11 rounded-full bg-gradient-to-br from-sky-500 to-blue-700 border border-white/10 flex items-center justify-center text-lg active:scale-90 transition-transform"
-        >
-          🎧
-        </button>
-
-        <div className="w-6 h-px bg-white/10" />
-
-        <button
-          onClick={onOpenRefer}
-          aria-label="Refer & Earn"
-          className="fab-refer relative w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 border border-white/10 flex items-center justify-center text-lg active:scale-90 transition-transform"
-        >
-          🎁
-          <span className="fab-badge absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[9px] font-black rounded-full px-1.5 py-0.5 border-2 border-[#0b0f19] shadow-md">
-            +₹
-          </span>
-        </button>
-      </div>
-
       <div className="relative z-10 max-w-md mx-auto px-4 py-5 pb-32 flex flex-col gap-4">
         <HeaderScreen />
 
@@ -526,6 +499,11 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }
         onAddMobile={onAddMobile}
         onOpenTask={onStart}
       />
+      <BottomNav
+  onSupport={handleSupportClick}
+  onAllTasks={onOpenAllTasks}
+  onRefer={onOpenRefer}
+/>
     </div>
   );
 }
