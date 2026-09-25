@@ -28,127 +28,133 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [endedInfo, setEndedInfo] = useState(null); // { status, message, lifafa }
 
-  const initApp = async () => {
-    WebApp.ready();
-    try {
+  const loadLifafa = async (lifafaIdArg, refArg = null) => {
+  setLoading(true);
+  setError(null);
+  setEndedInfo(null);
+  setScreen("");
 
-      const user = WebApp.initDataUnsafe?.user;
-      const startParam = WebApp.initDataUnsafe?.start_param;
+  try {
+    const user = WebApp.initDataUnsafe?.user;
 
-      setCurrentUser(user);
-
-      if (!user?.id) {
-        setError({
-          title: "Unable To Fetch",
-          message: "Telegram user not found",
-        });
-        return;
-      }
-
-      if (!startParam) {
-        setError({
-          title: "Invalid Request",
-          message: "Lifafa ID missing",
-        });
-        return;
-      }
-      if (startParam === "all_task") {
-  setScreen("activeTasks");
-  setLoading(false);
-  return;
-      }
-
-      if (startParam.startsWith("report_")) {
-        const lifafaId = startParam.replace("report_", "");
-        setScreen("report");
-        setLifafa({ id: lifafaId });
-        setLoading(false);
-        return;
-      }
-
-      let lifafaId = startParam;
-      let ref = null;
-
-      if (startParam.includes("_ref")) {
-        const parts = startParam.split("_ref");
-        lifafaId = parts[0];
-        ref = parts[1] || null;
-      }
-
-      const res = await api.post("/botlifafa/validate", {
-        lifafaId,
-        ref,
-        telegramUser: user,
-      });
-
-      const data = res.data;
-
-      if (!data?.success) {
-        // ✅ over / complete / inactive — backend ab lifafa ka poora
-        // summary (budget, claimedUsers, amountPerUser, support) bhi
-        // bhejta hai, isliye generic error ki jagah dedicated screen
-        const endedStatuses = ["over", "complete", "inactive"];
-        if (endedStatuses.includes(data?.status)) {
-          setEndedInfo({
-            status: data.status,
-            message: data.message,
-            lifafa: data.lifafa || null,
-            alreadyStarted: data.alreadyStarted,
-            inviteStatus: data.inviteStatus,
-          });
-          setScreen("ended");
-          return;
-        }
-
-        setError({
-          title: "Invalid Lifafa",
-          message: data?.message || "Expired or invalid link",
-        });
-        return;
-      }
-
-      if (!data?.lifafa) {
-        setError({
-          title: "Invalid Response",
-          message: "Lifafa data missing",
-        });
-        return;
-      }
-
-      // 1) initApp() ke andar — mobile ko lifafa state ke saath merge karo
-setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
-
-      switch (data.status) {
-        case "new":
-          setScreen("task");
-          break;
-        case "completed":
-          setScreen("claim");
-          break;
-        case "claimed":
-          setScreen("already");
-          break;
-        default:
-          setError({
-            title: "Unknown Status",
-            message: "Invalid lifafa status",
-          });
-      }
-    } catch (err) {
-      console.error("Init error:", err);
-      setError({
-        title: "Server Error",
-        message: err?.response?.data?.message || "Something went wrong",
-      });
-    } finally {
-      setLoading(false);
+    if (!user?.id) {
+      setError({ title: "Unable To Fetch", message: "Telegram user not found" });
+      return;
     }
-  };
+
+    const res = await api.post("/botlifafa/validate", {
+      lifafaId: lifafaIdArg,
+      ref: refArg,
+      telegramUser: user,
+    });
+
+    const data = res.data;
+
+    if (!data?.success) {
+      const endedStatuses = ["over", "complete", "inactive"];
+      if (endedStatuses.includes(data?.status)) {
+        setEndedInfo({
+          status: data.status,
+          message: data.message,
+          lifafa: data.lifafa || null,
+          alreadyStarted: data.alreadyStarted,
+          inviteStatus: data.inviteStatus,
+        });
+        setScreen("ended");
+        return;
+      }
+      setError({ title: "Invalid Lifafa", message: data?.message || "Expired or invalid link" });
+      return;
+    }
+
+    if (!data?.lifafa) {
+      setError({ title: "Invalid Response", message: "Lifafa data missing" });
+      return;
+    }
+
+    setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
+
+    switch (data.status) {
+      case "new":
+        setScreen("task");
+        break;
+      case "completed":
+        setScreen("claim");
+        break;
+      case "claimed":
+        setScreen("already");
+        break;
+      default:
+        setError({ title: "Unknown Status", message: "Invalid lifafa status" });
+    }
+  } catch (err) {
+    console.error("loadLifafa error:", err);
+    setError({
+      title: "Server Error",
+      message: err?.response?.data?.message || "Something went wrong",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+const initApp = async () => {
+  WebApp.ready();
+
+  const user = WebApp.initDataUnsafe?.user;
+  const startParam = WebApp.initDataUnsafe?.start_param;
+
+  setCurrentUser(user);
+
+  if (!user?.id) {
+    setError({ title: "Unable To Fetch", message: "Telegram user not found" });
+    setLoading(false);
+    return;
+  }
+
+  if (!startParam) {
+    setError({ title: "Invalid Request", message: "Lifafa ID missing" });
+    setLoading(false);
+    return;
+  }
+
+  if (startParam.startsWith("report_")) {
+    const lifafaId = startParam.replace("report_", "");
+    setScreen("report");
+    setLifafa({ id: lifafaId });
+    setLoading(false);
+    return;
+  }
+
+  if (startParam === "all_task") {
+    setScreen("activeTasks");
+    setLoading(false);
+    return;
+  }
+
+  let lifafaId = startParam;
+  let ref = null;
+
+  if (startParam.includes("_ref")) {
+    const parts = startParam.split("_ref");
+    lifafaId = parts[0];
+    ref = parts[1] || null;
+  }
+
+  await loadLifafa(lifafaId, ref);
+};
+  
+
+      
 
   useEffect(() => {
     initApp();
   }, []);
 
+
+  const openTaskFromList = (taskId) => {
+  loadLifafa(taskId); // ⚡ same app session ke andar, koi page reload/deep-link nahi
+};
   
   const openTask = () => {
   if (!lifafa?.referLink || !currentUser?.id) return;
@@ -342,7 +348,9 @@ setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
           {screen === "report" && (
             <ReportScreen lifafaId={lifafa.id} />
           )}
-          {screen === "activeTasks" && <ActiveTasksScreen />}
+          {screen === "activeTasks" && (
+  <ActiveTasksScreen onSelectTask={openTaskFromList} />
+)}
 
           {screen === "ended" && endedInfo && (
              <LifafaEndedScreen
