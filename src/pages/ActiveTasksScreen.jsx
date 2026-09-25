@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import WebApp from "@twa-dev/sdk";
 import api from "../services/api";
+import HeaderScreen from "../components/HeaderScreen";
 
 const INR = (n) =>
   new Intl.NumberFormat("en-IN", {
@@ -24,16 +26,24 @@ export default function ActiveTasksScreen({ onSelectTask }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // ⚡ Broken/incomplete task docs (0 values) UI me nahi dikhane
   const validTasks = (data?.tasks || []).filter(
     (t) => Number(t.claimAmount) > 0 && Number(t.totalSlots) > 0
   );
 
+  const openRegister = () => {
+    const url = "https://taskwalasolution.in/register";
+    try {
+      WebApp.openLink(url); // Telegram ke andar naye tab jaisa external browser khulega
+    } catch (err) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white px-4 py-6">
       <div className="max-w-md mx-auto space-y-5">
-        <h1 className="text-xl font-bold">Active Tasks</h1>
-
+        <HeaderScreen />
+        
         {/* SUMMARY */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4">
@@ -55,6 +65,34 @@ export default function ActiveTasksScreen({ onSelectTask }) {
             )}
           </div>
         </div>
+
+        {/* TRUST BADGES */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-2.5 text-center">
+            <p className="text-sm font-bold text-amber-300">₹10</p>
+            <p className="text-[9px] text-gray-500 mt-0.5 leading-tight">Min Withdrawal</p>
+          </div>
+          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-2.5 text-center">
+            <p className="text-sm font-bold text-emerald-300">2 Hrs</p>
+            <p className="text-[9px] text-gray-500 mt-0.5 leading-tight">Upto Payment</p>
+          </div>
+          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-2.5 text-center">
+            <p className="text-sm font-bold text-sky-300">Instant</p>
+            <p className="text-[9px] text-gray-500 mt-0.5 leading-tight">Task Earning</p>
+          </div>
+        </div>
+
+        {/* REGISTER CTA */}
+        <button
+          onClick={openRegister}
+          className="w-full flex items-center justify-between gap-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-400/20 rounded-2xl px-4 py-3 text-left active:scale-[0.98] transition-all"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-amber-200">New here?</p>
+            <p className="text-xs text-gray-400 mt-0.5">Register on TaskWala to get started</p>
+          </div>
+          <span className="text-amber-300 text-xs font-bold shrink-0">Register →</span>
+        </button>
 
         {/* LIST */}
         <div className="space-y-3">
@@ -87,10 +125,7 @@ export default function ActiveTasksScreen({ onSelectTask }) {
                   className="relative bg-gradient-to-br from-[#1a1f2f] to-[#111827] border border-white/10 rounded-2xl p-4 overflow-hidden"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">{task.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">{task.support}</p>
-                    </div>
+                    <p className="font-semibold truncate min-w-0">{task.title}</p>
                     <div className="text-right shrink-0">
                       <p className="text-lg font-black text-amber-300">₹{task.claimAmount}</p>
                       <p className="text-[10px] text-gray-500">per user</p>
@@ -132,6 +167,15 @@ export default function ActiveTasksScreen({ onSelectTask }) {
               Abhi koi active task nahi hai
             </p>
           )}
+        </div>
+
+        {/* BRANDING FOOTER */}
+        <div className="pt-4 pb-2 text-center">
+          <p className="text-sm font-black tracking-wide">
+            <span className="text-orange-400">Task</span>
+            <span className="text-blue-400">Wala</span>
+          </p>
+          <p className="text-[10px] text-gray-600 mt-0.5">Solutions India</p>
         </div>
       </div>
     </div>
