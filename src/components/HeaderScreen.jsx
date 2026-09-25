@@ -10,7 +10,7 @@ export default function HeaderScreen() {
   return (
     <>
       {/* HEADER */}
-      <div className="">
+      <div style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[28px] p-4 shadow-2xl">
           <div className="flex items-center justify-between gap-3">
 
