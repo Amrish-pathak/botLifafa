@@ -323,7 +323,8 @@ const initApp = async () => {
               lifafa={lifafa}
               onStart={openTask}
               onAddMobile={addMobile}
-              onOpenRefer={() => setReferScreen(true)}   // ✅ FIX
+              onOpenRefer={() => setReferScreen(true)}  
+              onOpenAllTasks={() => { setScreen("activeTasks"); }}// ✅ FIX
             />
           )}
 
