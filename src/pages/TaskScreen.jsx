@@ -108,7 +108,7 @@ const ProgressCard = ({ lifafa }) => {
 };
 
 // ── MOBILE NUMBER SHEET ─────────────────────────────────────────────────
-function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMobile, onOpenTask ,onOpenAllTasks}) {
+function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMobile, onOpenTask }) {
   useLockBodyScroll(open);
   const [editing, setEditing] = useState(!existingMobile);
   const [mobile, setMobile] = useState("");
@@ -349,7 +349,7 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
   );
 }
 
-export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer }) {
+export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,onOpenAllTasks}) {
   const [showSteps, setShowSteps] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
