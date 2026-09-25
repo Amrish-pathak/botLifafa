@@ -491,7 +491,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,
         </div>
       </div>
 
-      <MobileNumberSheet
+            <MobileNumberSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         claimAmount={claimAmount}
@@ -501,4 +501,9 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,
       />
       <BottomNav
   onSupport={handleSupportClick}
-  onAllTasks={onOpen
+  onAllTasks={onOpenAllTasks}
+  onRefer={onOpenRefer}
+/>
+    </div>
+  );
+}
