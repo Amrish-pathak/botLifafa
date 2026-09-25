@@ -15,12 +15,24 @@ const Skeleton = ({ className = "" }) => (
 export default function ActiveTasksScreen() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState(null); // ⚠️ TEMPORARY DEBUG
 
   useEffect(() => {
     api
       .get("/botlifafa/active-tasks")
-      .then((res) => setData(res.data))
-      .catch((err) => console.error("active-tasks fetch error:", err))
+      .then((res) => {
+        setData(res.data);
+        setDebugInfo({ type: "success", raw: res.data }); // ⚠️ TEMPORARY DEBUG
+      })
+      .catch((err) => {
+        console.error("active-tasks fetch error:", err);
+        setDebugInfo({
+          type: "error",
+          message: err?.message || String(err),
+          status: err?.response?.status || "no response",
+          responseData: err?.response?.data || null,
+        }); // ⚠️ TEMPORARY DEBUG
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -32,6 +44,19 @@ export default function ActiveTasksScreen() {
     <div className="min-h-screen bg-[#0b0f19] text-white px-4 py-6">
       <div className="max-w-md mx-auto space-y-5">
         <h1 className="text-xl font-bold">Active Tasks</h1>
+
+        {/* ⚠️ TEMPORARY DEBUG PANEL — baad me hata dena */}
+        {debugInfo && (
+          <div
+            className={`rounded-xl p-3 border text-xs font-mono break-words whitespace-pre-wrap ${
+              debugInfo.type === "error"
+                ? "bg-red-950/40 border-red-500/40 text-red-300"
+                : "bg-emerald-950/30 border-emerald-500/30 text-emerald-300"
+            }`}
+          >
+            {JSON.stringify(debugInfo, null, 2)}
+          </div>
+        )}
 
         {/* SUMMARY */}
         <div className="grid grid-cols-2 gap-3">
