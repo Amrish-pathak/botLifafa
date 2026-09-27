@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import HeaderScreen from "../components/HeaderScreen";
+import BottomNav from "../components/BottomNav";
 
 const INR = (n) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(n) || 0);
@@ -74,7 +75,7 @@ const formatMMSS = (totalSeconds) => {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 
-export default function LifafaEndedScreen({ status, message, lifafa, alreadyStarted, inviteStatus }) {
+export default function LifafaEndedScreen({ status, message, lifafa, alreadyStarted, inviteStatus, onOpenRefer, onOpenAllTasks }) {
   const [copied, setCopied] = useState(false);
   const theme = STATUS_THEME[status] || STATUS_THEME.inactive;
 
@@ -141,7 +142,7 @@ export default function LifafaEndedScreen({ status, message, lifafa, alreadyStar
       <div className={`absolute top-[-120px] left-[-120px] w-[260px] h-[260px] ${theme.glow} blur-3xl rounded-full pointer-events-none`}></div>
       <div className={`absolute bottom-[-100px] right-[-100px] w-[240px] h-[240px] ${theme.glow} blur-3xl rounded-full pointer-events-none`}></div>
 
-      <div className="relative z-10 max-w-md mx-auto px-4 py-5 pb-10 flex flex-col gap-4">
+      <div className="relative z-10 max-w-md mx-auto px-4 py-5 pb-32 flex flex-col gap-4">
         <HeaderScreen />
 
         {/* ── BOT / TASK IDENTITY ROW — naam left (big), logo right ───────── */}
@@ -285,6 +286,12 @@ export default function LifafaEndedScreen({ status, message, lifafa, alreadyStar
           </p>
         </div>
       </div>
+
+      <BottomNav
+        onSupport={handleSupportClick}
+        onAllTasks={onOpenAllTasks}
+        onRefer={onOpenRefer}
+      />
     </div>
   );
 }
