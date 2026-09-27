@@ -1,21 +1,40 @@
+import HeaderScreen from "../components/HeaderScreen";
+import BottomNav from "../components/BottomNav";
+
 export default function AlreadyClaimed({
   lifafa,
   onReferClick,
+  onOpenAllTasks,
 }) {
-  const reward = lifafa?.claimAmount || 5;
+  // ⚡ FIX — pehle "|| 5" hardcoded fallback tha, agar claimAmount
+  // kisi wajah se missing/0 ho toh galat ₹5 dikhta tha. Ab "|| 0".
+  const reward = Number(lifafa?.claimAmount || 0);
 
   const isDirect =
     !lifafa?.refConditionName ||
     lifafa?.refConditionName === "Direct Join";
 
+  const handleSupportClick = () => {
+    const supportUsername = String(lifafa?.support || "TaskWala_Solution_India_Help").replace("@", "").trim();
+    const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "";
+    const msg = `I want help on bot Lifafa - ${lifafa?.title || "Task"}.\nMy Telegram ID: ${tgId}`;
+    const url = `https://t.me/${supportUsername}?text=${encodeURIComponent(msg)}`;
+    if (window.Telegram?.WebApp?.openTelegramLink) window.Telegram.WebApp.openTelegramLink(url);
+    else window.open(url, "_blank");
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white relative overflow-hidden">
+      <div className="px-4 pt-6 max-w-md mx-auto">
+        {/* ⚡ FIX — HeaderScreen missing thi, baaki screens ke saath inconsistent */}
+        <HeaderScreen />
+      </div>
 
       {/* Glow */}
       <div className="absolute top-[-120px] left-[-120px] w-[280px] h-[280px] bg-yellow-500/20 blur-3xl rounded-full" />
       <div className="absolute bottom-[-120px] right-[-120px] w-[280px] h-[280px] bg-orange-500/20 blur-3xl rounded-full" />
 
-      <div className="relative z-10 max-w-md mx-auto px-4 py-8">
+      <div className="relative z-10 max-w-md mx-auto px-4 py-6 pb-32">
 
         {/* Card */}
         <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[34px] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.5)] text-center">
@@ -82,22 +101,7 @@ export default function AlreadyClaimed({
           {/* CTA Button → your separate screen */}
           <button
             onClick={onReferClick}
-            className="
-              mt-7
-              w-full
-              h-14
-              rounded-2xl
-              bg-gradient-to-r
-              from-blue-400
-              via-cyan-500
-              to-blue-500
-              text-white
-              text-lg
-              font-black
-              shadow-[0_10px_30px_rgba(0,150,255,0.25)]
-              active:scale-[0.98]
-              transition-all
-            "
+            className="mt-7 w-full h-14 rounded-2xl bg-gradient-to-r from-blue-400 via-cyan-500 to-blue-500 text-white text-lg font-black shadow-[0_10px_30px_rgba(0,150,255,0.25)] active:scale-[0.98] transition-all"
           >
             🎁 Go to Refer & Earn
           </button>
@@ -113,6 +117,12 @@ export default function AlreadyClaimed({
         </div>
 
       </div>
+
+      <BottomNav
+        onSupport={handleSupportClick}
+        onAllTasks={onOpenAllTasks}
+        onRefer={onReferClick}
+      />
     </div>
   );
 }
