@@ -1,14 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import HeaderScreen from "../components/HeaderScreen";
+import BottomNav from "../components/BottomNav";
 
-export default function SuccessScreen({ amount, onReferClick }) {
+export default function SuccessScreen({ amount, onReferClick, lifafa, onOpenAllTasks }) {
   const [celebrating, setCelebrating] = useState(true);
 
-  // Stop animation after 3 seconds
-  setTimeout(() => setCelebrating(false), 3000);
+  // ⚡ FIX — pehle yeh setTimeout render ke andar seedha likha tha,
+  // isliye HAR re-render pe naya timer ban raha tha (memory leak).
+  // Ab useEffect me hai, sirf mount pe ek baar chalega.
+  useEffect(() => {
+    const t = setTimeout(() => setCelebrating(false), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleSupportClick = () => {
+    const supportUsername = String(lifafa?.support || "TaskWala_Solution_India_Help").replace("@", "").trim();
+    const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "";
+    const msg = `I want help on bot Lifafa - ${lifafa?.title || "Task"}.\nMy Telegram ID: ${tgId}`;
+    const url = `https://t.me/${supportUsername}?text=${encodeURIComponent(msg)}`;
+    if (window.Telegram?.WebApp?.openTelegramLink) window.Telegram.WebApp.openTelegramLink(url);
+    else window.open(url, "_blank");
+  };
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white overflow-hidden relative">
+      <style>
+        {`
+          @keyframes shimmer {
+            100% { transform: translateX(100%); }
+          }
+        `}
+      </style>
+
       <div className="px-4 pt-6">
         <HeaderScreen />
       </div>
@@ -17,18 +40,18 @@ export default function SuccessScreen({ amount, onReferClick }) {
       <div className="absolute top-[-120px] left-[-120px] w-[260px] h-[260px] bg-green-500/30 blur-3xl rounded-full animate-pulse"></div>
       <div className="absolute bottom-[-100px] right-[-100px] w-[240px] h-[240px] bg-emerald-500/30 blur-3xl rounded-full animate-pulse"></div>
 
-      <div className="relative z-10 max-w-md mx-auto px-4 py-6">
+      <div className="relative z-10 max-w-md mx-auto px-4 py-6 pb-32">
         {/* SUCCESS CARD */}
         <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[32px] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.5)] overflow-hidden relative">
-          
+
           {/* Top Glow */}
           <div className="absolute top-0 right-0 w-40 h-40 bg-green-400/10 blur-3xl rounded-full"></div>
 
           <div className="relative z-10">
-            
+
             {/* Success Icon */}
             <div className="text-center">
-              <div 
+              <div
                 className={`w-28 h-28 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-6xl mx-auto shadow-[0_10px_40px_rgba(0,255,120,0.3)] ${
                   celebrating ? "animate-bounce" : ""
                 }`}
@@ -56,7 +79,7 @@ export default function SuccessScreen({ amount, onReferClick }) {
 
             {/* Reward Amount Card */}
             <div className="mt-8 bg-gradient-to-br from-green-500/15 to-emerald-500/10 border border-green-400/30 rounded-3xl p-6 text-center relative overflow-hidden">
-              
+
               {/* Shine effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
 
@@ -95,7 +118,7 @@ export default function SuccessScreen({ amount, onReferClick }) {
 
             {/* Referral CTA */}
             <div className="mt-6 bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-400/20 rounded-3xl p-5">
-              
+
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-2xl shrink-0 shadow-lg">
                   🎁
@@ -113,26 +136,7 @@ export default function SuccessScreen({ amount, onReferClick }) {
 
               <button
                 onClick={onReferClick}
-                className="
-                  mt-4
-                  w-full
-                  h-14
-                  rounded-2xl
-                  bg-gradient-to-r
-                  from-amber-400
-                  via-orange-500
-                  to-amber-500
-                  text-black
-                  text-base
-                  font-black
-                  shadow-[0_10px_30px_rgba(251,146,60,0.3)]
-                  active:scale-[0.98]
-                  transition-all
-                  flex
-                  items-center
-                  justify-center
-                  gap-2
-                "
+                className="mt-4 w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black text-base font-black shadow-[0_10px_30px_rgba(251,146,60,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
                 <span>Start Referring & Earning</span>
                 <span className="text-lg">→</span>
@@ -153,13 +157,11 @@ export default function SuccessScreen({ amount, onReferClick }) {
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes shimmer {
-          100% {
-            transform: translateX(100%);
-          }
-        }
-      `}</style>
+      <BottomNav
+        onSupport={handleSupportClick}
+        onAllTasks={onOpenAllTasks}
+        onRefer={onReferClick}
+      />
     </div>
   );
 }
