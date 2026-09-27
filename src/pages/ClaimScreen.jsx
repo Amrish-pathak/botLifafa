@@ -1,27 +1,38 @@
 import { useState } from "react";
 import HeaderScreen from "../components/HeaderScreen";
+import BottomNav from "../components/BottomNav";
 
-export default function ClaimScreen({ lifafa, onClaim }) {
-  const [number, setNumber] = useState("");
+export default function ClaimScreen({ lifafa, onClaim, onOpenRefer, onOpenAllTasks }) {
+  const [number, setNumber] = useState(lifafa?.mobile || "");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSupportClick = () => {
+    const supportUsername = String(lifafa?.support || "TaskWala_Solution_India_Help").replace("@", "").trim();
+    const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "";
+    const msg = `I want help on bot Lifafa - ${lifafa?.title || "Task"}.\nMy Telegram ID: ${tgId}`;
+    const url = `https://t.me/${supportUsername}?text=${encodeURIComponent(msg)}`;
+    if (window.Telegram?.WebApp?.openTelegramLink) window.Telegram.WebApp.openTelegramLink(url);
+    else window.open(url, "_blank");
+  };
 
   const handleClaim = async () => {
-    // Validation
-    if (!number || number.trim() === "") {
-      alert("Please enter your TaskWala number");
+    const digits = number.trim();
+
+    // ⚡ FIX — pehle loose ".length < 6" check tha, ab proper 10-digit
+    // Indian mobile validation (consistent baaki app ke saath)
+    if (!/^[6-9][0-9]{9}$/.test(digits)) {
+      setError("Enter a valid 10-digit mobile number");
       return;
     }
 
-    if (number.trim().length < 6) {
-      alert("Please enter a valid number");
-      return;
-    }
-
+    setError("");
     setLoading(true);
     try {
-      await onClaim(number);
+      await onClaim(digits);
     } catch (err) {
       console.error("Claim failed:", err);
+      setError(err?.response?.data?.message || "Something went wrong, please try again");
     } finally {
       setLoading(false);
     }
@@ -37,7 +48,7 @@ export default function ClaimScreen({ lifafa, onClaim }) {
       <div className="absolute top-[-120px] left-[-120px] w-[260px] h-[260px] bg-emerald-500/20 blur-3xl rounded-full"></div>
       <div className="absolute bottom-[-100px] right-[-100px] w-[240px] h-[240px] bg-green-500/20 blur-3xl rounded-full"></div>
 
-      <div className="relative z-10 max-w-md mx-auto px-4 py-6">
+      <div className="relative z-10 max-w-md mx-auto px-4 py-6 pb-32">
         {/* MAIN CARD */}
         <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[32px] p-5 shadow-[0_20px_80px_rgba(0,0,0,0.45)] overflow-hidden relative">
           {/* Top Glow */}
@@ -80,32 +91,28 @@ export default function ClaimScreen({ lifafa, onClaim }) {
               <div className="relative">
                 <input
                   type="tel"
+                  inputMode="numeric"
                   placeholder="Enter Number"
                   value={number}
-                  onChange={(e) => setNumber(e.target.value)}
+                  onChange={(e) => {
+                    setNumber(e.target.value.replace(/\D/g, "").slice(0, 10));
+                    if (error) setError("");
+                  }}
                   disabled={loading}
-                  className="
-                    w-full
-                    h-14
-                    rounded-2xl
-                    bg-[#131a28]
-                    border
-                    border-white/10
-                    px-5
-                    text-white
-                    text-lg
-                    outline-none
-                    focus:border-green-400/40
-                    focus:bg-[#182132]
-                    transition-all
-                    disabled:opacity-50
-                    disabled:cursor-not-allowed
-                  "
+                  className={`w-full h-14 rounded-2xl bg-[#131a28] border px-5 text-white text-lg outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    error ? "border-red-500/60" : "border-white/10 focus:border-green-400/40 focus:bg-[#182132]"
+                  }`}
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xl">
                   📱
                 </div>
               </div>
+              {error && <p className="text-red-400 text-xs mt-2 px-1">{error}</p>}
+              {lifafa?.mobile && (
+                <p className="text-[11px] text-gray-500 mt-2 px-1">
+                  Aapka pehle wala number pre-filled hai — zaroorat ho toh badal sakte hain
+                </p>
+              )}
             </div>
 
             {/* Info Box */}
@@ -126,28 +133,8 @@ export default function ClaimScreen({ lifafa, onClaim }) {
             {/* Button */}
             <button
               onClick={handleClaim}
-              disabled={loading || !number.trim()}
-              className="
-                relative
-                overflow-hidden
-                mt-6
-                w-full
-                h-14
-                rounded-2xl
-                bg-gradient-to-r
-                from-green-400
-                via-emerald-500
-                to-green-500
-                text-black
-                text-lg
-                font-black
-                shadow-[0_10px_30px_rgba(0,255,120,0.25)]
-                active:scale-[0.98]
-                transition-all
-                disabled:opacity-50
-                disabled:cursor-not-allowed
-                disabled:active:scale-100
-              "
+              disabled={loading || number.length !== 10}
+              className="relative overflow-hidden mt-6 w-full h-14 rounded-2xl bg-gradient-to-r from-green-400 via-emerald-500 to-green-500 text-black text-lg font-black shadow-[0_10px_30px_rgba(0,255,120,0.25)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
             >
               <span className="relative z-10">
                 {loading ? "Processing..." : `Claim ₹${lifafa.claimAmount}`}
@@ -168,6 +155,12 @@ export default function ClaimScreen({ lifafa, onClaim }) {
           </div>
         </div>
       </div>
+
+      <BottomNav
+        onSupport={handleSupportClick}
+        onAllTasks={onOpenAllTasks}
+        onRefer={onOpenRefer}
+      />
     </div>
   );
 }
