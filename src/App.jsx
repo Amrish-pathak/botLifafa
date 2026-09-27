@@ -327,45 +327,51 @@ const initApp = async () => {
               onOpenAllTasks={() => { setScreen("activeTasks"); }}// ✅ FIX
             />
           )}
+{screen === "claim" && (
+  <ClaimScreen
+    lifafa={lifafa}
+    onClaim={claimReward}
+    onOpenRefer={() => setReferScreen(true)}
+    onOpenAllTasks={() => setScreen("activeTasks")}
+  />
+)}
 
-          <ClaimScreen
-  lifafa={lifafa}
-  onClaim={claimReward}
-  onOpenRefer={() => setReferScreen(true)}
-  onOpenAllTasks={() => setScreen("activeTasks")}
-/>
+{screen === "success" && (
+  <SuccessScreen
+    amount={claimAmount}
+    lifafa={lifafa}
+    onReferClick={() => setReferScreen(true)}
+    onOpenAllTasks={() => setScreen("activeTasks")}
+  />
+)}
 
-          <SuccessScreen
-  amount={claimAmount}
-  lifafa={lifafa}
-  onReferClick={() => setReferScreen(true)}
-  onOpenAllTasks={() => setScreen("activeTasks")}
-/>
+{screen === "already" && (
+  <AlreadyClaimed
+    lifafa={lifafa}
+    onReferClick={() => setReferScreen(true)}
+    onOpenAllTasks={() => setScreen("activeTasks")}
+  />
+)}
 
-          <AlreadyClaimed
-  lifafa={lifafa}
-  onReferClick={() => setReferScreen(true)}
-  onOpenAllTasks={() => setScreen("activeTasks")}
-/>
+{screen === "report" && (
+  <ReportScreen lifafaId={lifafa.id} />
+)}
 
-          {screen === "report" && (
-            <ReportScreen lifafaId={lifafa.id} />
-          )}
-          {screen === "activeTasks" && (
+{screen === "activeTasks" && (
   <ActiveTasksScreen onSelectTask={openTaskFromList} />
 )}
 
-          <LifafaEndedScreen
-  status={endedInfo.status}
-  message={endedInfo.message}
-  lifafa={endedInfo.lifafa}
-  alreadyStarted={endedInfo.alreadyStarted}
-  inviteStatus={endedInfo.inviteStatus}
-  onOpenRefer={() => setReferScreen(true)}
-  onOpenAllTasks={() => setScreen("activeTasks")}
-/>
-        </>
-      )}
+{screen === "ended" && endedInfo && (
+  <LifafaEndedScreen
+    status={endedInfo.status}
+    message={endedInfo.message}
+    lifafa={endedInfo.lifafa}
+    alreadyStarted={endedInfo.alreadyStarted}
+    inviteStatus={endedInfo.inviteStatus}
+    onOpenRefer={() => setReferScreen(true)}
+    onOpenAllTasks={() => setScreen("activeTasks")}
+  />
+)}
       </Suspense>
       </ErrorBoundary>
           
