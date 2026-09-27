@@ -349,7 +349,7 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
   );
 }
 
-export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,onOpenAllTasks}) {
+export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer, onOpenAllTasks }) {
   const [showSteps, setShowSteps] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -373,6 +373,13 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,
     }
   };
 
+  const steps = [
+    { icon: "🚀", title: "Start Task", desc: "Tap the button below to begin." },
+    { icon: "📢", title: "Join Channel", desc: "Complete Telegram verification." },
+    { icon: "✅", title: "Claim Reward", desc: "Receive reward instantly." },
+    { icon: "🎥", title: "Watch Tutorial", desc: "Learn the completion process." },
+  ];
+
   return (
     <div className="min-h-screen bg-[#0b0f19] text-white overflow-x-hidden relative scrollbar-hide">
       <style>
@@ -383,6 +390,12 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,
           .fab-refer { animation: glowPulseAmber 2.2s ease-in-out infinite, softBounce 2.2s ease-in-out infinite; }
           .fab-support { animation: glowPulseBlue 2.8s ease-in-out infinite; }
           .fab-badge { animation: badgePop 1.5s ease-in-out infinite; }
+
+          .steps-fade { animation: stepsFadeIn 0.25s ease; }
+          @keyframes stepsFadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
         `}
       </style>
 
@@ -398,7 +411,23 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-3xl rounded-full"></div>
 
           <div className="relative z-10">
-            <p className="uppercase tracking-[0.25em] text-xs text-amber-300/70">Reward Task</p>
+            <div className="flex items-center justify-between">
+              <p className="uppercase tracking-[0.25em] text-xs text-amber-300/70">Reward Task</p>
+
+              {/* ⓘ INFO ICON — "How to Complete" yahan se toggle hota hai */}
+              <button
+                onClick={() => setShowSteps((s) => !s)}
+                aria-label="How to complete"
+                className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-black border transition-all active:scale-90 ${
+                  showSteps
+                    ? "bg-amber-400 text-black border-amber-400"
+                    : "bg-white/5 text-amber-300 border-amber-400/30"
+                }`}
+              >
+                i
+              </button>
+            </div>
+
             <h2 className="mt-3 text-2xl font-bold leading-tight">{title}</h2>
 
             <div className="mt-5 flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-2xl px-4 py-4">
@@ -408,64 +437,41 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,
               </div>
               <div className="text-5xl animate-bounce">💰</div>
             </div>
+
+            {/* HOW TO COMPLETE — sirf info icon dabane pe dikhta hai */}
+            {showSteps && (
+              <div className="steps-fade mt-4 bg-black/20 border border-white/10 rounded-2xl p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-amber-200">How to Complete</h3>
+                  <button
+                    onClick={() => setShowSteps(false)}
+                    aria-label="Close"
+                    className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-gray-400 text-xs active:scale-90 transition-all"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {steps.map((item, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-base shrink-0">
+                        {item.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">{item.title}</p>
+                        <p className="text-xs text-gray-400 leading-snug">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Progress + Remaining Card */}
         <ProgressCard lifafa={lifafa} />
-
-        {/* COLLAPSIBLE STEPS */}
-        <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[28px] overflow-hidden transition-all duration-300">
-          <button
-            onClick={() => setShowSteps(!showSteps)}
-            className="w-full flex items-center justify-between p-4"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-400/10 flex items-center justify-center text-xl">
-                📋
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-bold">How to Complete</h3>
-                <p className="text-xs text-gray-400">Easy premium workflow</p>
-              </div>
-            </div>
-            <div
-              className={`w-10 h-10 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-xl transition-all duration-300 ${
-                showSteps ? "rotate-180" : ""
-              }`}
-            >
-              ⌄
-            </div>
-          </button>
-
-          <div
-            className={`transition-all duration-500 ease-in-out overflow-hidden ${
-              showSteps ? "max-h-[500px] opacity-100 p-4 pt-0" : "max-h-0 opacity-0"
-            }`}
-          >
-             <div className="space-y-3">
-              {[
-                { icon: "🚀", title: "Start Task", desc: "Tap the button below to begin." },
-                { icon: "📢", title: "Join Channel", desc: "Complete Telegram verification." },
-                { icon: "✅", title: "Claim Reward", desc: "Receive reward instantly." },
-                { icon: "🎥", title: "Watch Tutorial", desc: "Learn the completion process." },
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-4 bg-[#131a28] border border-white/5 rounded-2xl p-4 hover:bg-[#182132] transition-all"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-2xl shrink-0">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="font-semibold">{item.title}</p>
-                    <p className="text-sm text-gray-400 mt-1">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* START BUTTON */}
         <button
@@ -491,7 +497,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,
         </div>
       </div>
 
-            <MobileNumberSheet
+       <MobileNumberSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         claimAmount={claimAmount}
@@ -500,10 +506,10 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer ,
         onOpenTask={onStart}
       />
       <BottomNav
-  onSupport={handleSupportClick}
-  onAllTasks={onOpenAllTasks}
-  onRefer={onOpenRefer}
-/>
+        onSupport={handleSupportClick}
+        onAllTasks={onOpenAllTasks}
+        onRefer={onOpenRefer}
+      />
     </div>
   );
 }
