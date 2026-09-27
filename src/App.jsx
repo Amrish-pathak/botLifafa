@@ -372,6 +372,7 @@ const initApp = async () => {
     onOpenAllTasks={() => setScreen("activeTasks")}
   />
 )}
+          )
       </Suspense>
       </ErrorBoundary>
           
