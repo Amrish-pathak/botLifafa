@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
 
 import api from "./services/api";
@@ -17,6 +17,22 @@ const ReportScreen = lazy(() => import("./pages/ReportScreen"));
 const LifafaEndedScreen = lazy(() => import("./pages/LifafaEndedScreen"));
 const ActiveTasksScreen = lazy(() => import("./pages/ActiveTasksScreen"));
 
+// ── MASTER SLOT — server ka slot object → client-clock deadlines ──────────────
+// reservedUntil absolute ISO hai → serverTime se diff nikaal ke client clock pe convert (drift-proof).
+// retryAfterSeconds relative hai → seedha now + seconds. Jitter: sab full users ek hi millisecond pe
+// retry na karein (thundering herd).
+const normalizeSlot = (slot) => {
+  if (!slot) return null;
+  const now = Date.now();
+  const serverNow = slot.serverTime ? Date.parse(slot.serverTime) : now;
+  return {
+    state: slot.state, // "reserved" | "confirmed" | "full" | "none"
+    holdSeconds: slot.holdSeconds || 60,
+    reservedUntilMs: slot.reservedUntil ? now + (Date.parse(slot.reservedUntil) - serverNow) : null,
+    retryAtMs: slot.retryAfterSeconds ? now + slot.retryAfterSeconds * 1000 + Math.random() * 1500 : null,
+  };
+};
+
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,17 +44,39 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [endedInfo, setEndedInfo] = useState(null); // { status, message, lifafa }
 
-  const loadLifafa = async (lifafaIdArg, refArg = null) => {
-  setLoading(true);
-  setError(null);
-  setEndedInfo(null);
-  setScreen("");
+  // lifafaRef: hamesha latest lifafa (openTask ke stale closure se bachne ke liye — addMobile ke turant baad
+  // naya referLink chahiye). lastParamsRef: silent slot-retry ke liye validate ke params.
+  const lifafaRef = useRef(null);
+  const lastParamsRef = useRef({ lifafaId: null, ref: null });
+
+  const patchLifafa = (patch) => {
+    lifafaRef.current = { ...(lifafaRef.current || {}), ...patch };
+    setLifafa(lifafaRef.current);
+  };
+
+  // silent=true → splash/loading nahi, screen jaisi hai waisi rahe (slot countdown ke auto-retry ke liye)
+  const loadLifafa = async (lifafaIdArg, refArg = null, { silent = false } = {}) => {
+  lastParamsRef.current = { lifafaId: lifafaIdArg, ref: refArg };
+
+  if (!silent) {
+    setLoading(true);
+    setError(null);
+    setEndedInfo(null);
+    setScreen("");
+  }
+
+  // silent me error screen nahi — 5s baad countdown se dobara try
+  const fail = (e) => {
+    if (!silent) return setError(e);
+    const cur = lifafaRef.current;
+    if (cur?.slot) patchLifafa({ slot: { ...cur.slot, retryAtMs: Date.now() + 5000 } });
+  };
 
   try {
     const user = WebApp.initDataUnsafe?.user;
 
     if (!user?.id) {
-      setError({ title: "Unable To Fetch", message: "Telegram user not found" });
+      fail({ title: "Unable To Fetch", message: "Telegram user not found" });
       return;
     }
 
@@ -63,16 +101,19 @@ export default function App() {
         setScreen("ended");
         return;
       }
-      setError({ title: "Invalid Lifafa", message: data?.message || "Expired or invalid link" });
+      fail({ title: "Invalid Lifafa", message: data?.message || "Expired or invalid link" });
       return;
     }
 
     if (!data?.lifafa) {
-      setError({ title: "Invalid Response", message: "Lifafa data missing" });
+      fail({ title: "Invalid Response", message: "Lifafa data missing" });
       return;
     }
 
-    setLifafa({ ...data.lifafa, mobile: data.mobile || "" });
+    // ✅ slot: master lifafa me aata hai (reserved / confirmed / full). Normal lifafa me null.
+    const next = { ...data.lifafa, mobile: data.mobile || "", slot: normalizeSlot(data.slot) };
+    lifafaRef.current = next;
+    setLifafa(next);
 
     switch (data.status) {
       case "new":
@@ -85,17 +126,24 @@ export default function App() {
         setScreen("already");
         break;
       default:
-        setError({ title: "Unknown Status", message: "Invalid lifafa status" });
+        fail({ title: "Unknown Status", message: "Invalid lifafa status" });
     }
   } catch (err) {
     console.error("loadLifafa error:", err);
-    setError({
+    fail({
       title: "Server Error",
       message: err?.response?.data?.message || "Something went wrong",
     });
   } finally {
     setLoading(false);
   }
+};
+
+// TaskScreen ka slot countdown 0 hone par yahi chalta hai
+const refreshSlot = () => {
+  const { lifafaId, ref } = lastParamsRef.current;
+  if (!lifafaId) return Promise.resolve();
+  return loadLifafa(lifafaId, ref, { silent: true });
 };
 
 const initApp = async () => {
@@ -157,9 +205,11 @@ const initApp = async () => {
 };
   
   const openTask = () => {
-  if (!lifafa?.referLink || !currentUser?.id) return;
+  // ref se padho — addMobile ke turant baad (master slot confirm) naya referLink yahin milta hai
+  const cur = lifafaRef.current;
+  if (!cur?.referLink || !currentUser?.id) return;
 
-  const link = lifafa.referLink.replace(
+  const link = cur.referLink.replace(
     "%7Buser%7D",
     String(currentUser.id)
   );
@@ -188,7 +238,8 @@ const initApp = async () => {
 
 
   // ── NAYA — sirf yeh function add hua hai, baaki file untouched ─────────
-  const addMobile = async (number) => {
+  // skipSlot=true → Refer screen: number sirf bind hota hai, master slot confirm nahi hota
+  const addMobile = async (number, { skipSlot = false } = {}) => {
     if (!currentUser?.id) {
       throw new Error("User not found");
     }
@@ -200,8 +251,24 @@ const initApp = async () => {
       lifafaId: lifafa.id,
       initData: WebApp.initData,
       number: String(number).trim(),
+      ...(skipSlot && { skipSlot: true }),
     });
-    return res.data;
+
+    // refer screen: TaskScreen unmounted hai (sheet nahi) → mobile patch safe; wapas aane pe "Continue & Start Task" me dikhega
+    if (skipSlot) {
+      patchLifafa({ mobile: String(number).trim() });
+      return res.data;
+    }
+
+    // ✅ master: number add pe slot confirm hota hai → referLink + slot state yahin aata hai.
+    // (lifafa.mobile jaan-bujhkar patch nahi kiya — sheet ka reset-effect existingMobile pe chalta hai)
+    const data = res.data;
+    if (data?.slot) {
+      const patch = { slot: normalizeSlot(data.slot) };
+      if (data.referLink) patch.referLink = data.referLink;
+      patchLifafa(patch);
+    }
+    return data;
   };
 
   const claimReward = async (number) => {
@@ -314,7 +381,7 @@ const initApp = async () => {
           onBack={() => setReferScreen(false)}
           onReferLink={getReferLink}
           existingMobile={lifafa?.mobile || ""}   // ✅ FIX
-          onAddMobile={addMobile}                  // ✅ FIX
+          onAddMobile={(n) => addMobile(n, { skipSlot: true })}   // ✅ refer se number bind → slot confirm nahi
         />
       ) : (
         <>
@@ -323,6 +390,7 @@ const initApp = async () => {
               lifafa={lifafa}
               onStart={openTask}
               onAddMobile={addMobile}
+              onSlotRetry={refreshSlot}
               onOpenRefer={() => setReferScreen(true)}  
               onOpenAllTasks={() => { setScreen("activeTasks"); }}// ✅ FIX
             />
@@ -381,4 +449,4 @@ const initApp = async () => {
         
     </>
   );
-    }
+}
