@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import HeaderScreen from "../components/HeaderScreen";
 import BottomNav from "../components/BottomNav";
 
@@ -13,6 +13,24 @@ const INR = (n) =>
 const NUM = (n) => new Intl.NumberFormat("en-IN").format(Number(n) || 0);
 
 const formatMobileDisplay = (m = "") => (m.length === 10 ? `${m.slice(0, 5)} ${m.slice(5)}` : m);
+
+// ── COUNTDOWN — target (client-clock ms) tak kitne second bache ──────────────
+// Value render me Date.now() se nikalti hai (state me nahi) — isse naya target aate hi
+// purani/stale value kabhi nahi dikhti. Interval sirf re-render trigger karta hai.
+function useCountdown(targetMs) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    if (!targetMs) return;
+    const id = setInterval(() => {
+      force((n) => n + 1);
+      if (Date.now() >= targetMs) clearInterval(id);
+    }, 500);
+    return () => clearInterval(id);
+  }, [targetMs]);
+  return targetMs ? Math.max(0, Math.ceil((targetMs - Date.now()) / 1000)) : 0;
+}
+
+const fmtClock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 
 // ── BODY SCROLL LOCK — bottom sheet khulte hi background freeze ────────────
 function useLockBodyScroll(locked) {
@@ -108,7 +126,7 @@ const ProgressCard = ({ lifafa }) => {
 };
 
 // ── MOBILE NUMBER SHEET ─────────────────────────────────────────────────
-function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMobile, onOpenTask }) {
+function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMobile, onOpenTask, needsConfirm = false }) {
   useLockBodyScroll(open);
   const [editing, setEditing] = useState(!existingMobile);
   const [mobile, setMobile] = useState("");
@@ -164,26 +182,22 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
     if (error) setError("");
   };
 
-  const handleSubmit = async () => {
-    if (!/^[6-9][0-9]{9}$/.test(mobile)) {
-      setError("Enter a valid 10-digit mobile number");
-      haptic("error");
-      return;
-    }
-
-    if (existingMobile && mobile === existingMobile) {
-      haptic();
-      onClose();
-      onOpenTask();
-      return;
-    }
-
+  // number backend ko bhejo → master me yahin slot CONFIRM hota hai
+  const submitNumber = async (num) => {
     haptic();
     setSubmitting(true);
     setError("");
 
     try {
-      await onAddMobile(mobile);
+      const data = await onAddMobile(num);
+
+      // ✅ Number save ho gaya par is beech slots full ho gaye — sheet band, button pe countdown dikhega
+      if (data?.slotFull) {
+        haptic("error");
+        onClose();
+        return;
+      }
+
       haptic("success");
       setSuccess(true);
     } catch (err) {
@@ -197,7 +211,29 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
     }
   };
 
-  const handleContinueExisting = () => {
+  const handleSubmit = async () => {
+    if (!/^[6-9][0-9]{9}$/.test(mobile)) {
+      setError("Enter a valid 10-digit mobile number");
+      haptic("error");
+      return;
+    }
+
+    // slot already confirmed + same number → seedha task. Reserved slot ho to confirm ke liye backend jaana hi padega
+    if (existingMobile && mobile === existingMobile && !needsConfirm) {
+      haptic();
+      onClose();
+      onOpenTask();
+      return;
+    }
+
+    await submitNumber(mobile);
+  };
+
+  const handleContinueExisting = async () => {
+    if (needsConfirm) {
+      await submitNumber(existingMobile);
+      return;
+    }
     haptic();
     onClose();
     onOpenTask();
@@ -272,11 +308,21 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
               </button>
             </div>
 
+            {error && <p className="text-red-400 text-xs mt-3 px-1">{error}</p>}
+
             <button
               onClick={handleContinueExisting}
-              className="w-full h-14 mt-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-base shadow-[0_10px_30px_rgba(255,170,0,0.3)] active:scale-[0.98] transition-all"
+              disabled={submitting}
+              className="w-full h-14 mt-5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-base shadow-[0_10px_30px_rgba(255,170,0,0.3)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100 flex items-center justify-center gap-2"
             >
-              Continue & Start Task
+              {submitting ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  Submitting…
+                </>
+              ) : (
+                "Continue & Start Task"
+              )}
             </button>
 
             <p className="text-center text-[10px] text-gray-600 mt-3 pb-1">
@@ -349,7 +395,7 @@ function MobileNumberSheet({ open, onClose, claimAmount, existingMobile, onAddMo
   );
 }
 
-export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer, onOpenAllTasks }) {
+export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer, onOpenAllTasks, onSlotRetry }) {
   const [showSteps, setShowSteps] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -357,6 +403,28 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer, 
   const claimAmount = lifafa?.claimAmount ?? "0";
   const refConditionName = lifafa?.refConditionName ?? "Direct Join";
   const existingMobile = lifafa?.mobile || "";
+
+  // ── MASTER SLOT STATE (normal lifafa me slot=null → sab pehle jaisa) ───────
+  const slot = lifafa?.slot || null;
+  const isFull = slot?.state === "full";
+  const needsConfirm = slot?.state === "reserved"; // hold hai, number add karke confirm karna baaki
+  const fullLeft = useCountdown(isFull ? slot.retryAtMs : null);
+  const reservedLeft = useCountdown(needsConfirm ? slot.reservedUntilMs : null);
+  const hasRetryTimer = isFull && !!slot.retryAtMs;
+  const [checking, setChecking] = useState(false);
+  const retryingRef = useRef(false);
+
+  // countdown 0 hote hi slot dobara check (App silently validate chalata hai) — ek deadline pe ek hi baar
+  useEffect(() => {
+    if (!hasRetryTimer || fullLeft > 0 || retryingRef.current) return;
+    retryingRef.current = true;
+    setChecking(true);
+    Promise.resolve(onSlotRetry?.()).finally(() => {
+      retryingRef.current = false;
+      setChecking(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasRetryTimer, slot?.retryAtMs, fullLeft]);
 
   const handleSupportClick = () => {
     const supportUsername = String(lifafa?.support || "").replace("@", "").trim();
@@ -414,7 +482,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer, 
             <div className="flex items-center justify-between">
               <p className="uppercase tracking-[0.25em] text-xs text-amber-300/70">Reward Task</p>
 
-              {/* ⓘ INFO ICON — "How to Complete" yahan se toggle hota hai */}
+                 {/* ⓘ INFO ICON — "How to Complete" yahan se toggle hota hai */}
               <button
                 onClick={() => setShowSteps((s) => !s)}
                 aria-label="How to complete"
@@ -473,14 +541,52 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer, 
         {/* Progress + Remaining Card */}
         <ProgressCard lifafa={lifafa} />
 
-        {/* START BUTTON */}
+        {/* START BUTTON — slot full ho to disabled + countdown isi button me */}
         <button
-          onClick={() => setSheetOpen(true)}
-          className="relative overflow-hidden w-full h-14 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black font-extrabold text-lg shadow-[0_10px_30px_rgba(255,170,0,0.35)] active:scale-[0.98] transition-all"
+          onClick={() => { if (!isFull) setSheetOpen(true); }}
+          disabled={isFull}
+          aria-disabled={isFull}
+          className={`relative overflow-hidden w-full h-14 rounded-2xl font-extrabold text-lg transition-all ${
+            isFull
+              ? "bg-white/[0.06] border border-white/10 text-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black shadow-[0_10px_30px_rgba(255,170,0,0.35)] active:scale-[0.98]"
+          }`}
         >
-          <span className="relative z-10">Start & Claim ₹{claimAmount}</span>
-          <div className="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity"></div>
+          <span className="relative z-10 flex items-center justify-center gap-2">
+            {isFull ? (
+              checking || (hasRetryTimer && fullLeft === 0) ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
+                  Checking slots…
+                </>
+              ) : hasRetryTimer ? (
+                <>⏳ Slots Full · Retry in {fmtClock(fullLeft)}</>
+              ) : (
+                <>🚫 Slots Full</>
+              )
+            ) : (
+              <>Start & Claim ₹{claimAmount}</>
+            )}
+          </span>
+          {!isFull && (
+            <div className="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity"></div>
+          )}
         </button>
+
+        {isFull && (
+          <p className="text-center text-[11px] text-gray-500 -mt-2">
+            {hasRetryTimer
+              ? "Slot free hote hi automatically check ho jayega"
+              : "Abhi saare slots bhar gaye hain"}
+          </p>
+        )}
+
+        {/* Hold chal raha hai — number add karke slot confirm karo */}
+        {needsConfirm && reservedLeft > 0 && (
+          <p className="text-center text-[11px] text-amber-300/80 -mt-2">
+            ⏱ Slot reserved for you · {fmtClock(reservedLeft)}
+          </p>
+        )}
 
         {/* FOOTER */}
         <div className="text-center pt-1 pb-2">
@@ -504,6 +610,7 @@ export default function TaskScreen({ lifafa, onStart, onAddMobile, onOpenRefer, 
         existingMobile={existingMobile}
         onAddMobile={onAddMobile}
         onOpenTask={onStart}
+        needsConfirm={needsConfirm}
       />
       <BottomNav
         onSupport={handleSupportClick}
